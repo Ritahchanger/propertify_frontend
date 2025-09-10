@@ -1,0 +1,31 @@
+name: Node.js CI/CD
+
+on:
+  push:
+    branches:
+      - main   # or "develop" depending on your flow
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # or your version
+
+      - name: Install dependencies
+        run: npm install --prefix server
+
+      - name: Run lint
+        run: npm run lint --prefix server
+
+      - name: Run tests
+        run: npm test --prefix server
