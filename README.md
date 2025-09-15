@@ -23,16 +23,19 @@ A modern, comprehensive real estate management platform designed for property ow
 #### Layout
 
 
-#### welcome page
+#### Welcome page
 ![Properties](public/screenshots/screen2.png)
 
-#### units page
+
+#### Units page
 ![Units](public/screenshots/screen3.png)
+
 
 #### Property Page
 ![Units](public/screenshots/screen4.png)
 
-### dashboard page
+
+### Dashboard page
 ![Dashboard](public/screenshots/screen1.png)
 
 ### 👥 **User Management**
