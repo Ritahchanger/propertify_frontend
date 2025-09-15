@@ -5,27 +5,19 @@ import {
   DollarSign,
   Settings,
   Search,
-
   ChevronDown,
   AlertTriangle,
   HelpCircle,
-
 } from 'lucide-react';
 
 // Import sidebar data
 import { sidebarSections } from './sidebarmenu';
-
 import { quickActions, portfolioStats } from './data';
 
 // Redux imports
 import type { RootState, AppDispatch } from '@/store/store';
-
 import { useDispatch, useSelector } from 'react-redux';
-
 import { useNavigate } from 'react-router-dom';
-
-
-
 
 import {
   closeMobile,
@@ -55,13 +47,13 @@ const PRIORITY_COLORS = {
 
 const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
   isCollapsed: isCollapsedProp = false,
-
   isMobileOpen = false,
-
 }) => {
   // Local state
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Redux state
   const dispatch = useDispatch<AppDispatch>();
@@ -116,11 +108,11 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
     dispatch(toggleSection(sectionId));
   }, [dispatch, isCollapsed]);
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   const handleNavigate = (url: string) => {
-    navigate(url)
-  }
+    navigate(url);
+  };
 
   const handleItemClick = useCallback((itemId: string) => {
     dispatch(setActiveItem(itemId));
@@ -131,8 +123,6 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
     }
   }, [dispatch, isMobile, mobileOpen]);
 
-
-
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   }, []);
@@ -142,6 +132,40 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
       dispatch(closeMobile());
     }
   }, [dispatch, isMobile, mobileOpen]);
+
+  // Enhanced mobile hover handlers
+  const handleMouseEnter = useCallback((itemId: string, event: React.MouseEvent) => {
+    // Show tooltip on both mobile and when sidebar is collapsed
+    if ((isMobile && mobileOpen) || (!isMobile && isCollapsed)) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      setHoverPosition({
+        x: rect.right + 10,
+        y: rect.top + (rect.height / 2)
+      });
+      setHoveredItem(itemId);
+    }
+  }, [isMobile, mobileOpen, isCollapsed]);
+
+  const handleMouseLeave = useCallback(() => {
+    if ((isMobile && mobileOpen) || (!isMobile && isCollapsed)) {
+      setHoveredItem(null);
+    }
+  }, [isMobile, mobileOpen, isCollapsed]);
+
+  // Touch-specific handler for better mobile support
+  const handleTouchStart = useCallback((itemId: string, event: React.TouchEvent) => {
+    if (isMobile && mobileOpen) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      setHoverPosition({
+        x: rect.right + 10,
+        y: rect.top + (rect.height / 2)
+      });
+      setHoveredItem(itemId);
+
+      // Auto-hide after 2 seconds on touch
+      setTimeout(() => setHoveredItem(null), 2000);
+    }
+  }, [isMobile, mobileOpen]);
 
   // Helper function for priority badge colors
   const getPriorityBadgeColor = useCallback((priority?: string): string => {
@@ -157,6 +181,17 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
     maintenanceRequests: portfolioStats?.maintenanceRequests || 0
   }), []);
 
+  // Find hovered item data for tooltip
+  const hoveredItemData = useMemo(() => {
+    if (!hoveredItem) return null;
+
+    for (const section of filteredSections) {
+      const item = section.items.find(item => item.id === hoveredItem);
+      if (item) return item;
+    }
+    return null;
+  }, [hoveredItem, filteredSections]);
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -168,10 +203,35 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
         />
       )}
 
+      {/* Enhanced Mobile/Collapsed Hover Tooltip */}
+      {((isMobile && mobileOpen) || (!isMobile && isCollapsed)) && hoveredItem && hoveredItemData && (
+        <div
+          className="fixed z-[60] bg-gray-900 text-white text-sm rounded-lg shadow-2xl border border-gray-700 px-4 py-3 max-w-xs pointer-events-none transform -translate-y-1/2"
+          style={{
+            left: `${hoverPosition.x}px`,
+            top: `${hoverPosition.y}px`,
+          }}
+        >
+          <div className="font-medium text-white">{hoveredItemData.label}</div>
+          {hoveredItemData.description && (
+            <div className="text-xs text-gray-300 mt-1 leading-relaxed">
+              {hoveredItemData.description}
+            </div>
+          )}
+          {hoveredItemData.badge && (
+            <div className="text-xs bg-blue-600 text-white px-2 py-1 rounded-full mt-2 inline-block">
+              {hoveredItemData.badge}
+            </div>
+          )}
+          {/* Tooltip arrow */}
+          <div className="absolute right-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-[6px] border-b-[6px] border-r-[6px] border-t-transparent border-b-transparent border-r-gray-900"></div>
+        </div>
+      )}
+
       {/* Sidebar Container */}
       <aside
         className={`
-          fixed  inset-y-0 left-0 z-50 top-[65px]
+          fixed inset-y-0 left-0 z-50 top-[65px]
           ${isCollapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED}
           ${isMobile ? (mobileOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}
           bg-white border-r border-gray-200 shadow-xl lg:shadow-none
@@ -181,9 +241,6 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
         role="navigation"
         aria-label="Main navigation"
       >
-        {/* Header Section */}
-
-
         {/* Portfolio Summary */}
         {!isCollapsed && (
           <section
@@ -245,12 +302,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                     ${action.color || 'bg-blue-500 hover:bg-blue-600'}
                   `}
                   aria-label={`Quick action: ${action.label}`}
-
-                  onClick={
-                    () => {
-                      handleNavigate(action.href)
-                    }
-                  }
+                  onClick={() => handleNavigate(action.href)}
                 >
                   <action.icon className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform duration-200" aria-hidden="true" />
                   <span className="text-xs font-medium">{action.label}</span>
@@ -288,6 +340,9 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                 {/* Section Header */}
                 <button
                   onClick={() => handleSectionToggle(section.id)}
+                  onMouseEnter={(e) => handleMouseEnter(`section-${section.id}`, e)}
+                  onMouseLeave={handleMouseLeave}
+                  onTouchStart={(e) => handleTouchStart(`section-${section.id}`, e)}
                   className={`
                     w-full flex items-center justify-between p-3 text-left rounded-xl 
                     hover:bg-gray-50 transition-all duration-200 group/section
@@ -330,7 +385,10 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                     {section.items.map((item) => (
                       <button
                         key={item.id}
-                        onClick={() => { handleNavigate(item.href); handleItemClick(item.id) }}
+                        onClick={() => { handleNavigate(item.href); handleItemClick(item.id); }}
+                        onMouseEnter={(e) => handleMouseEnter(item.id, e)}
+                        onMouseLeave={handleMouseLeave}
+                        onTouchStart={(e) => handleTouchStart(item.id, e)}
                         className={`
                           w-full flex items-center justify-between p-3 rounded-xl text-left 
                           transition-all duration-200 group/item relative
@@ -372,28 +430,6 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                             </span>
                           </div>
                         )}
-
-                        {/* Collapsed State Tooltip */}
-                        {isCollapsed && (
-                          <div className="
-                            absolute left-full ml-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg 
-                            opacity-0 invisible group-hover/item:opacity-100 group-hover/item:visible 
-                            transition-all duration-200 z-50 whitespace-nowrap pointer-events-none
-                            shadow-lg border border-gray-700
-                          ">
-                            <div className="font-medium">{item.label}</div>
-                            {item.description && (
-                              <div className="text-xs text-gray-300 mt-1">{item.description}</div>
-                            )}
-                            {item.badge && (
-                              <div className="text-xs bg-blue-600 text-white px-2 py-1 rounded-full mt-2 inline-block">
-                                {item.badge}
-                              </div>
-                            )}
-                            {/* Tooltip arrow */}
-                            <div className="absolute right-full top-1/2 transform -translate-y-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
-                          </div>
-                        )}
                       </button>
                     ))}
                   </div>
@@ -407,14 +443,24 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
         <footer className={`p-4 border-t border-gray-200 ${isCollapsed ? 'px-2' : 'px-4'}`}>
           {!isCollapsed ? (
             <div className="space-y-2">
-              <button className="w-full flex items-center p-3 text-left rounded-xl hover:bg-gray-50 transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <button
+                className="w-full flex items-center p-3 text-left rounded-xl hover:bg-gray-50 transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onMouseEnter={(e) => handleMouseEnter('help-support', e)}
+                onMouseLeave={handleMouseLeave}
+                onTouchStart={(e) => handleTouchStart('help-support', e)}
+              >
                 <HelpCircle className="h-4 w-4 text-gray-500 mr-3 group-hover:text-blue-600 transition-colors duration-200" aria-hidden="true" />
                 <div>
                   <div className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Help & Support</div>
                   <div className="text-xs text-gray-500">Get assistance</div>
                 </div>
               </button>
-              <button className="w-full flex items-center p-3 text-left rounded-xl hover:bg-gray-50 transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <button
+                className="w-full flex items-center p-3 text-left rounded-xl hover:bg-gray-50 transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onMouseEnter={(e) => handleMouseEnter('settings', e)}
+                onMouseLeave={handleMouseLeave}
+                onTouchStart={(e) => handleTouchStart('settings', e)}
+              >
                 <Settings className="h-4 w-4 text-gray-500 mr-3 group-hover:text-blue-600 transition-colors duration-200" aria-hidden="true" />
                 <div>
                   <div className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Settings</div>
@@ -428,6 +474,9 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                 className="w-full p-3 text-gray-500 hover:text-blue-600 hover:bg-gray-50 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 title="Help & Support"
                 aria-label="Help & Support"
+                onMouseEnter={(e) => handleMouseEnter('help-support', e)}
+                onMouseLeave={handleMouseLeave}
+                onTouchStart={(e) => handleTouchStart('help-support', e)}
               >
                 <HelpCircle className="h-4 w-4 mx-auto" />
               </button>
@@ -435,6 +484,9 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                 className="w-full p-3 text-gray-500 hover:text-blue-600 hover:bg-gray-50 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 title="Settings"
                 aria-label="Settings"
+                onMouseEnter={(e) => handleMouseEnter('settings', e)}
+                onMouseLeave={handleMouseLeave}
+                onTouchStart={(e) => handleTouchStart('settings', e)}
               >
                 <Settings className="h-4 w-4 mx-auto" />
               </button>
