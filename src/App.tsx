@@ -1,12 +1,15 @@
-import React from 'react'
-import PropertifyNavbar from './modules/layout/admin-layout/components/navbar/Navbar'
+import { Routes, Route } from "react-router-dom";
+import Login from "./modules/authentication/user/login/Login";
+
+import Dashboard from "./modules/dashboard/pages/Dashboard";
 
 const App = () => {
   return (
-    <div>
-      <PropertifyNavbar />
-    </div>
-  )
-}
+    <Routes>
+      <Route path="/" element={<Login />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+    </Routes>
+  );
+};
 
-export default App
+export default App;

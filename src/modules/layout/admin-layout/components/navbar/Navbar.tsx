@@ -1,438 +1,733 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-    Bell,
     Building2,
-    ChevronDown,
-    CreditCard,
-    DollarSign,
-    FileText,
-    Home,
-    TrendingUp,
-    MessageSquare,
-    Settings,
-    Shield,
     Users,
+    DollarSign,
     Wrench,
-    Wifi,
+    Bell,
+    Settings,
     Search,
-    LogOut,
+    Menu,
+    X,
+    ChevronDown,
     User,
-    HelpCircle,
-    BarChart3,
-    Award,
-    Star,
-    MapPin,
+    LogOut,
+    Shield,
+    FileText,
+    AlertTriangle,
     Clock,
-    Eye
+    Star,
+    CreditCard,
+    HelpCircle,
+    PanelLeftOpen,
+    PanelLeftClose,
+    Zap,
 } from 'lucide-react';
 
+// Import data only
+import { 
+    navigationItems, 
+    notifications, 
+    quickActions, 
+    type UserRole, 
+    type NotificationItem 
+} from './data';
 
-import { Button } from '@/shared/components/ui/button';
-
+// Redux imports
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '@/store/store';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/shared/components/ui/dropdown-menu';
-import { Input } from '@/shared/components/ui/input';
-import { Badge } from '@/shared/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
+    closeMobile,
+    toggleMobile,
+    setActiveItem,
+    toggleSection,
+    toggleCollapse
+} from '../sidebar/SidebarSlice';
 
-import { formatTime, formatDate } from '@/shared/utils';
+// Types
+interface User {
+    name: string;
+    email: string;
+    role: UserRole;
+    avatar?: string;
+    properties: number;
+    units: number;
+    monthlyRevenue: string;
+    occupancyRate: string;
+    joinDate: string;
+    plan: string;
+}
 
+// Constants
+const SCROLL_THRESHOLD = 10;
 
-// Mock user data
-const currentUser = {
-    name: "Rita Changer",
-    email: "rita@propertify.ke",
-    role: "Owner",
-    avatar: "/api/placeholder/40/40",
-    estates: ["Eastlands Plaza", "Westside Gardens", "Downtown Heights"],
-    monthlyRevenue: "KES 120,000",
-    totalProperties: 12,
-    totalTenants: 45,
-    rating: 4.8,
-    occupancyRate: 92,
-    isOnline: true,
-    memberSince: "Jan 2021",
-    lastLogin: "2024-10-01 09:15 AM"
-};
+const PropertifyNavbar: React.FC = () => {
+    // Local state
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+    const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [isScrolled, setIsScrolled] = useState<boolean>(false);
+    const [showQuickActions, setShowQuickActions] = useState<boolean>(false);
 
-// Navigation items based on user roles
-const getNavigationItems = (userRole: string) => {
-    const baseItems = [
-        { name: 'Dashboard', href: '/dashboard', icon: Home },
-        { name: 'Properties', href: '/properties', icon: Building2 },
-    ];
+    // Redux state and dispatch
+    const dispatch = useDispatch<AppDispatch>();
+    const { isCollapsed } = useSelector((state: RootState) => state.sidebar);
 
-    const roleSpecificItems = {
-        Owner: [
-            { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-            { name: 'Financial Reports', href: '/financial-reports', icon: DollarSign },
-            { name: 'User Management', href: '/users', icon: Users },
-            { name: 'Estate Settings', href: '/estate-settings', icon: Settings },
-        ],
-        Manager: [
-            { name: 'Tenants', href: '/tenants', icon: Users },
-            { name: 'Applications', href: '/applications', icon: FileText },
-            { name: 'Maintenance', href: '/maintenance', icon: Wrench },
-            { name: 'Payments', href: '/payments', icon: CreditCard },
-            { name: 'Reports', href: '/reports', icon: BarChart3 },
-        ],
-        Tenant: [
-            { name: 'My Lease', href: '/my-lease', icon: FileText },
-            { name: 'Payments', href: '/my-payments', icon: CreditCard },
-            { name: 'Maintenance', href: '/my-maintenance', icon: Wrench },
-            { name: 'Messages', href: '/messages', icon: MessageSquare },
-        ],
-        Accountant: [
-            { name: 'Invoices', href: '/invoices', icon: FileText },
-            { name: 'Payments', href: '/payments', icon: CreditCard },
-            { name: 'Expenses', href: '/expenses', icon: DollarSign },
-            { name: 'Reports', href: '/financial-reports', icon: BarChart3 },
-        ]
-    };
+    // User data - mock data since no external components
+    const user: User = useMemo(() => ({
+        name: "Rita Changer",
+        email: "rita@propertify.ke",
+        role: "owner" as UserRole,
+        avatar: "/api/placeholder/40/40",
+        properties: 3,
+        units: 48,
+        monthlyRevenue: "$24,500",
+        occupancyRate: "94.2%",
+        joinDate: "March 2023",
+        plan: "Professional"
+    }), []);
 
-    return [...baseItems, ...(roleSpecificItems[userRole as keyof typeof roleSpecificItems] || [])];
-};
+    // Computed values with safety checks
+    const unreadNotifications = useMemo(() => 
+        Array.isArray(notifications) ? notifications.filter(n => !n.read).length : 0, 
+        []
+    );
+    
+    const urgentNotifications = useMemo(() => 
+        Array.isArray(notifications) ? notifications.filter(n => n.priority === 'high' && !n.read).length : 0, 
+        []
+    );
+    
+    const filteredNavItems = useMemo(() => 
+        Array.isArray(navigationItems) ? navigationItems.filter(item => item.roles?.includes(user.role)) : [], 
+        [user.role]
+    );
 
-const notifications = [
-    {
-        id: 1,
-        type: 'payment',
-        title: 'Payment Received',
-        message: 'John Doe paid KES 25,000 for Unit A101',
-        time: '5 minutes ago',
-        unread: true
-    },
-    {
-        id: 2,
-        type: 'maintenance',
-        title: 'Urgent Maintenance Request',
-        message: 'Water leakage reported in Unit B203',
-        time: '1 hour ago',
-        unread: true
-    },
-    {
-        id: 3,
-        type: 'application',
-        title: 'New Tenant Application',
-        message: 'Mary Smith applied for Unit C105',
-        time: '3 hours ago',
-        unread: false
-    }
-];
+    // Event handlers
+    const handleSidebarToggle = useCallback(() => {
+        dispatch(toggleCollapse());
+    }, [dispatch]);
 
-const PropertifyNavbar = () => {
-    const [activeItem, setActiveItem] = useState('Dashboard');
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
+    const handleMobileMenuToggle = useCallback(() => {
+        setIsMobileMenuOpen(!isMobileMenuOpen);
+    }, [isMobileMenuOpen]);
 
+    const handleDropdownToggle = useCallback((itemId: string) => {
+        setActiveDropdown(activeDropdown === itemId ? null : itemId);
+    }, [activeDropdown]);
 
-    const navigationItems = getNavigationItems(currentUser.role);
-    const unreadNotifications = notifications.filter(n => n.unread).length;
+    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value);
+    }, []);
 
-    const [currentTime, setCurrentTime] = useState(new Date());
+    const handleSearchClear = useCallback(() => {
+        setSearchQuery('');
+    }, []);
 
+    const handleQuickActionsToggle = useCallback(() => {
+        setShowQuickActions(!showQuickActions);
+    }, [showQuickActions]);
 
-    const getNotificationIcon = (type: string) => {
-        switch (type) {
-            case 'payment': return <CreditCard className="h-4 w-4 text-green-500" />;
-            case 'maintenance': return <Wrench className="h-4 w-4 text-orange-500" />;
-            case 'application': return <FileText className="h-4 w-4 text-blue-500" />;
-            default: return <Bell className="h-4 w-4" />;
-        }
-    };
+    // Utility functions
+    const getNotificationIcon = useCallback((type: NotificationItem['type']) => {
+        const iconMap = {
+            payment: DollarSign,
+            maintenance: Wrench,
+            application: Users,
+            lease: FileText,
+        };
+        return iconMap[type] || Bell;
+    }, []);
 
+    const getNotificationColor = useCallback((type: NotificationItem['type'], priority: NotificationItem['priority']) => {
+        if (priority === 'high') return 'bg-red-100 text-red-600 border-red-200';
+        
+        const colorMap = {
+            payment: 'bg-green-100 text-green-600 border-green-200',
+            maintenance: 'bg-yellow-100 text-yellow-600 border-yellow-200',
+            application: 'bg-blue-100 text-blue-600 border-blue-200',
+            lease: 'bg-purple-100 text-purple-600 border-purple-200',
+        };
+        return colorMap[type] || 'bg-gray-100 text-gray-600 border-gray-200';
+    }, []);
 
+    const getRoleBadgeColor = useCallback((role: UserRole): string => {
+        const roleColors = {
+            owner: 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg',
+            manager: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg',
+            tenant: 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg',
+            accountant: 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg',
+        };
+        return roleColors[role] || 'bg-gray-100 text-gray-800';
+    }, []);
 
+    const getPriorityBadge = useCallback((priority: NotificationItem['priority']) => {
+        const priorityColors = {
+            high: 'bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium',
+            medium: 'bg-yellow-500 text-white text-xs px-2 py-1 rounded-full font-medium',
+            low: 'bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium',
+        };
+        return priorityColors[priority] || 'bg-gray-500 text-white text-xs px-2 py-1 rounded-full font-medium';
+    }, []);
+
+    // Effects
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > SCROLL_THRESHOLD);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Element;
+            if (isMobileMenuOpen && !target.closest('.mobile-menu') && !target.closest('.mobile-menu-button')) {
+                setIsMobileMenuOpen(false);
+            }
+            if (activeDropdown && !target.closest('.dropdown-container')) {
+                setActiveDropdown(null);
+            }
+            if (showQuickActions && !target.closest('.quick-actions-container')) {
+                setShowQuickActions(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isMobileMenuOpen, activeDropdown, showQuickActions]);
 
     return (
-        <nav className="bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
-            <div className="mx-auto">
-                {/* Main Navbar Row */}
-                <div className="flex items-center justify-between">
-                    {/* Logo and Brand */}
-                    <div className="flex items-center space-x-4">
+        <>
+            <nav className={`bg-white shadow-lg border-b border-gray-100 fixed w-full right-0 left-0 top-0 z-50 transition-all duration-300 ${
+                isScrolled ? 'shadow-2xl backdrop-blur-md bg-white/95 border-gray-200' : ''
+            }`}>
+                <div className="px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center h-16">
+                        {/* Logo and Brand Section */}
+                        <div className="flex items-center justify-items-start">
+                            <div className="flex-shrink-0 flex items-center group cursor-pointer">
+                                {/* Sidebar Toggle Button */}
+                                <div className="mr-4 ml-[-18px] bg-amber-200">
+                                    <button
+                                        onClick={handleSidebarToggle}
+                                        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                        aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                                    >
+                                        {isCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+                                    </button>
+                                </div>
+
+                                {/* Logo */}
+                                <div className="relative">
+                                    <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+                                        <Building2 className="h-6 w-6 text-white" />
+                                    </div>
+                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-green-400 to-green-500 rounded-full animate-pulse"></div>
+                                </div>
+
+                                {/* Brand Text */}
+                                <div className="ml-3">
+                                    <span className="text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent">
+                                        Propertify
+                                    </span>
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-xs text-gray-500 font-medium">Property Management Suite</span>
+                                        <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-medium">Pro</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Desktop Navigation */}
+                            <div className="hidden lg:block ml-10">
+                                <div className="flex items-baseline space-x-1">
+                                    {filteredNavItems.map((item) => (
+                                        <div key={item.id} className="relative dropdown-container">
+                                            {item.dropdown ? (
+                                                <div className="group">
+                                                    <button
+                                                        className="group flex items-center text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative"
+                                                        onClick={() => handleDropdownToggle(item.id)}
+                                                    >
+                                                        <item.icon className="h-4 w-4 mr-2.5 group-hover:scale-110 transition-transform duration-200" />
+                                                        {item.label}
+                                                        {item.badge && (
+                                                            <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse shadow-lg">
+                                                                {item.badge}
+                                                            </span>
+                                                        )}
+                                                        <ChevronDown className={`h-3 w-3 ml-1.5 transition-transform duration-200 ${
+                                                            activeDropdown === item.id ? 'rotate-180' : 'group-hover:rotate-180'
+                                                        }`} />
+                                                    </button>
+
+                                                    {/* Dropdown Menu */}
+                                                    <div className={`absolute left-0 mt-1 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 transition-all duration-200 z-50 ${
+                                                        activeDropdown === item.id ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'
+                                                    }`}>
+                                                        <div className="p-3">
+                                                            <div className="flex items-center justify-between px-3 py-2 mb-2">
+                                                                <div className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
+                                                                    {item.label}
+                                                                </div>
+                                                                <span className="text-xs text-gray-500">{item.dropdown?.length || 0} options</span>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                {item.dropdown?.map((dropdownItem) => (
+                                                                    <button
+                                                                        key={dropdownItem.href}
+                                                                        className="w-full flex items-center justify-between px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-all duration-150 group"
+                                                                    >
+                                                                        <div className="flex items-center">
+                                                                            <dropdownItem.icon className="h-4 w-4 mr-3 text-gray-400 group-hover:text-blue-500 transition-colors duration-150" />
+                                                                            <div className="text-left">
+                                                                                <div className="font-medium">{dropdownItem.label}</div>
+                                                                                {dropdownItem.description && (
+                                                                                    <div className="text-xs text-gray-500">{dropdownItem.description}</div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                        {dropdownItem.badge && (
+                                                                            <span className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded-full">
+                                                                                {dropdownItem.badge}
+                                                                            </span>
+                                                                        )}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <button className="flex items-center text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group">
+                                                    <item.icon className="h-4 w-4 mr-2.5 group-hover:scale-110 transition-transform duration-200" />
+                                                    {item.label}
+                                                    {item.badge && (
+                                                        <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse shadow-lg">
+                                                            {item.badge}
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right side features */}
                         <div className="flex items-center space-x-3">
-                            <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-2 rounded-sm shadow-md">
-                                <Building2 className="h-6 w-6 text-white" />
+                            {/* Quick Actions Button */}
+                            <div className="hidden lg:block relative quick-actions-container">
+                                <button
+                                    onClick={handleQuickActionsToggle}
+                                    className="flex items-center text-gray-600 hover:text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-xl transition-all duration-200 group"
+                                >
+                                    <Zap className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform duration-200" />
+                                    <span className="text-sm font-medium">Quick Actions</span>
+                                </button>
+
+                                {showQuickActions && Array.isArray(quickActions) && (
+                                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 z-50">
+                                        <div className="p-3">
+                                            <div className="text-sm font-semibold text-gray-800 mb-2">Quick Actions</div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {quickActions.map((action, index) => (
+                                                    <button
+                                                        key={action.href || index}
+                                                        className={`flex items-center p-3 rounded-lg text-white hover:opacity-90 transition-opacity duration-150 ${
+                                                            action.color || 'bg-blue-500'
+                                                        }`}
+                                                    >
+                                                        <action.icon className="h-4 w-4 mr-2" />
+                                                        <span className="text-xs font-medium">{action.label}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                            <div className="hidden md:block">
-                                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                    Propertify
-                                </h1>
-                                <p className="text-xs text-gray-500 font-medium">Real Estate Management</p>
+
+                            {/* Search Bar */}
+                            <div className="hidden md:block relative">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <Search className="h-4 w-4 text-gray-400" />
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="Search properties, tenants, payments..."
+                                    value={searchQuery}
+                                    onChange={handleSearchChange}
+                                    className="block w-80 pl-11 pr-4 py-2.5 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white sm:text-sm transition-all duration-200"
+                                />
+                                {searchQuery && (
+                                    <button
+                                        onClick={handleSearchClear}
+                                        className="absolute inset-y-0 right-0 pr-4 flex items-center hover:text-gray-600 transition-colors duration-150"
+                                    >
+                                        <X className="h-4 w-4 text-gray-400" />
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Notifications */}
+                            <div className="relative group dropdown-container">
+                                <button className="relative p-2.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200">
+                                    <Bell className="h-5 w-5" />
+                                    {unreadNotifications > 0 && (
+                                        <>
+                                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse shadow-lg">
+                                                {unreadNotifications}
+                                            </span>
+                                            {urgentNotifications > 0 && (
+                                                <span className="absolute -top-2 -right-2 w-3 h-3 bg-red-500 rounded-full animate-ping"></span>
+                                            )}
+                                        </>
+                                    )}
+                                </button>
+
+                                {/* Notifications Dropdown */}
+                                {Array.isArray(notifications) && (
+                                    <div className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                                        <div className="p-4 border-b border-gray-100">
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                                                <div className="flex items-center space-x-2">
+                                                    {urgentNotifications > 0 && (
+                                                        <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-medium flex items-center">
+                                                            <AlertTriangle className="h-3 w-3 mr-1" />
+                                                            {urgentNotifications} urgent
+                                                        </span>
+                                                    )}
+                                                    {unreadNotifications > 0 && (
+                                                        <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-medium">
+                                                            {unreadNotifications} new
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="max-h-96 overflow-y-auto">
+                                            {notifications.map((notification) => {
+                                                const IconComponent = getNotificationIcon(notification.type);
+                                                return (
+                                                    <div
+                                                        key={notification.id}
+                                                        className={`flex items-start p-4 hover:bg-gray-50 transition-colors duration-150 border-l-4 ${
+                                                            !notification.read ? 'bg-blue-50/50 border-l-blue-500' : 'border-l-transparent'
+                                                        } ${notification.priority === 'high' ? 'border-l-red-500 bg-red-50/30' : ''}`}
+                                                    >
+                                                        <div className={`p-2.5 rounded-lg mr-3 border ${getNotificationColor(notification.type, notification.priority)}`}>
+                                                            <IconComponent className="h-4 w-4" />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center justify-between">
+                                                                <p className="text-sm font-semibold text-gray-900 truncate">
+                                                                    {notification.title}
+                                                                </p>
+                                                                <div className="flex items-center space-x-1">
+                                                                    <span className={getPriorityBadge(notification.priority)}>
+                                                                        {notification.priority}
+                                                                    </span>
+                                                                    {notification.priority === 'high' && (
+                                                                        <AlertTriangle className="h-3 w-3 text-red-500" />
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                                                            <div className="flex items-center justify-between mt-2">
+                                                                <div className="flex items-center space-x-3 text-xs text-gray-500">
+                                                                    <span className="flex items-center">
+                                                                        <Clock className="h-3 w-3 mr-1" />
+                                                                        {notification.time}
+                                                                    </span>
+                                                                    {notification.property && (
+                                                                        <span className="flex items-center">
+                                                                            <Building2 className="h-3 w-3 mr-1" />
+                                                                            {notification.property}
+                                                                        </span>
+                                                                    )}
+                                                                    {notification.amount && (
+                                                                        <span className="flex items-center font-medium text-green-600">
+                                                                            <DollarSign className="h-3 w-3 mr-1" />
+                                                                            {notification.amount}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="p-4 border-t border-gray-100 bg-gray-50">
+                                            <div className="flex items-center justify-between">
+                                                <button className="text-sm text-blue-600 font-medium hover:text-blue-700 transition-colors duration-150">
+                                                    Mark all as read
+                                                </button>
+                                                <button className="text-sm text-blue-600 font-medium hover:text-blue-700 transition-colors duration-150">
+                                                    View all notifications
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* User Menu */}
+                            <div className="relative group dropdown-container">
+                                <button className="flex items-center space-x-3 bg-gray-50 hover:bg-gray-100 rounded-xl px-3 py-2 transition-all duration-200">
+                                    <div className="relative">
+                                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 via-purple-600 to-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-lg">
+                                            {user.name.split(' ').map(n => n[0]).join('')}
+                                        </div>
+                                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
+                                    </div>
+                                    <div className="hidden md:block text-left">
+                                        <p className="text-sm font-semibold text-gray-900">{user.name}</p>
+                                        <div className="flex items-center space-x-2">
+                                            <span className={`text-xs px-2 py-0.5 rounded-lg font-medium ${getRoleBadgeColor(user.role)}`}>
+                                                Property Owner
+                                            </span>
+                                            <span className="text-xs text-gray-500">
+                                                {user.properties} properties • {user.occupancyRate}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <ChevronDown className="h-4 w-4 text-gray-400 group-hover:rotate-180 transition-transform duration-200" />
+                                </button>
+
+                                {/* User Dropdown */}
+                                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                                    {/* User Profile Header */}
+                                    <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="relative">
+                                                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-purple-500 via-purple-600 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                                                    {user.name.split(' ').map(n => n[0]).join('')}
+                                                </div>
+                                                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="font-bold text-gray-900">{user.name}</p>
+                                                <p className="text-sm text-gray-600">{user.email}</p>
+                                                <div className="flex items-center mt-1 space-x-2">
+                                                    <span className={`text-xs px-2 py-1 rounded-lg font-medium ${getRoleBadgeColor(user.role)}`}>
+                                                        Property Owner
+                                                    </span>
+                                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-lg font-medium">
+                                                        {user.plan} Plan
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Portfolio Stats */}
+                                    <div className="p-4 border-b border-gray-100 bg-gray-50">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="text-center">
+                                                <div className="text-2xl font-bold text-gray-900">{user.properties}</div>
+                                                <div className="text-xs text-gray-500">Properties</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-2xl font-bold text-gray-900">{user.units}</div>
+                                                <div className="text-xs text-gray-500">Total Units</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-xl font-bold text-green-600">{user.monthlyRevenue}</div>
+                                                <div className="text-xs text-gray-500">Monthly Revenue</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-xl font-bold text-blue-600">{user.occupancyRate}</div>
+                                                <div className="text-xs text-gray-500">Occupancy Rate</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Menu Items */}
+                                    <div className="p-2">
+                                        <button className="w-full flex items-center px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors duration-150 group">
+                                            <User className="h-4 w-4 mr-3 group-hover:scale-110 transition-transform duration-150" />
+                                            <div className="text-left">
+                                                <div className="font-medium">Profile Settings</div>
+                                                <div className="text-xs text-gray-500">Manage your account details</div>
+                                            </div>
+                                        </button>
+                                        <button className="w-full flex items-center px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors duration-150 group">
+                                            <Settings className="h-4 w-4 mr-3 group-hover:scale-110 transition-transform duration-150" />
+                                            <div className="text-left">
+                                                <div className="font-medium">Account Settings</div>
+                                                <div className="text-xs text-gray-500">Preferences and configurations</div>
+                                            </div>
+                                        </button>
+                                        <button className="w-full flex items-center px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors duration-150 group">
+                                            <CreditCard className="h-4 w-4 mr-3 group-hover:scale-110 transition-transform duration-150" />
+                                            <div className="text-left">
+                                                <div className="font-medium">Billing & Subscription</div>
+                                                <div className="text-xs text-gray-500">Manage your {user.plan} plan</div>
+                                            </div>
+                                        </button>
+                                        <button className="w-full flex items-center px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors duration-150 group">
+                                            <Shield className="h-4 w-4 mr-3 group-hover:scale-110 transition-transform duration-150" />
+                                            <div className="text-left">
+                                                <div className="font-medium">Security</div>
+                                                <div className="text-xs text-gray-500">Password and authentication</div>
+                                            </div>
+                                        </button>
+                                        <button className="w-full flex items-center px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors duration-150 group">
+                                            <HelpCircle className="h-4 w-4 mr-3 group-hover:scale-110 transition-transform duration-150" />
+                                            <div className="text-left">
+                                                <div className="font-medium">Help & Support</div>
+                                                <div className="text-xs text-gray-500">Get assistance and documentation</div>
+                                            </div>
+                                        </button>
+                                        
+                                        <div className="border-t border-gray-100 mt-2 pt-2">
+                                            <button className="w-full flex items-center px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors duration-150 group">
+                                                <LogOut className="h-4 w-4 mr-3 group-hover:scale-110 transition-transform duration-150" />
+                                                <div className="text-left">
+                                                    <div className="font-medium">Sign Out</div>
+                                                    <div className="text-xs text-red-400">End your current session</div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Mobile menu button */}
+                            <div className="lg:hidden">
+                                <button
+                                    onClick={handleMobileMenuToggle}
+                                    className="mobile-menu-button p-2.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200"
+                                    aria-label="Open mobile menu"
+                                >
+                                    {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                                </button>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    {/* Center - Real-time Clock and Date */}
-                    <div className="hidden lg:flex items-center space-x-6">
-                        <div className="flex items-center space-x-4 bg-gray-50 px-4 py-2 rounded-sm border">
-                            <div className="flex items-center space-x-2">
-                                <Clock className="h-4 w-4 text-blue-600" />
-                                <div className="text-center">
-                                    <div className="text-lg font-mono font-bold text-gray-900">
-                                        {formatTime(currentTime)}
-                                    </div>
-                                    <div className="text-xs text-gray-500 font-medium">
-                                        {formatDate(currentTime)}
-                                    </div>
-                                </div>
+                {/* Mobile menu */}
+                <div className={`lg:hidden mobile-menu transition-all duration-300 ease-in-out ${
+                    isMobileMenuOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
+                }`}>
+                    <div className="px-4 pt-2 pb-6 space-y-2 border-t border-gray-100 bg-white shadow-lg">
+                        {/* Mobile Search */}
+                        <div className="relative mb-4">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Search className="h-4 w-4 text-gray-400" />
                             </div>
-                        </div>
-
-                        {/* Owner Stats */}
-                        <div className="flex items-center space-x-4 bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-2 rounded-sm border border-blue-200">
-                            <div className="flex items-center space-x-2">
-                                <TrendingUp className="h-4 w-4 text-green-600" />
-                                <div>
-                                    <div className="text-sm font-bold text-gray-900">{currentUser.monthlyRevenue}</div>
-                                    <div className="text-xs text-gray-500">Monthly Revenue</div>
-                                </div>
-                            </div>
-                            <div className="h-8 w-px bg-gray-300"></div>
-                            <div className="flex items-center space-x-2">
-                                <Building2 className="h-4 w-4 text-blue-600" />
-                                <div>
-                                    <div className="text-sm font-bold text-gray-900">{currentUser.totalProperties}</div>
-                                    <div className="text-xs text-gray-500">Properties</div>
-                                </div>
-                            </div>
-                            <div className="h-8 w-px bg-gray-300"></div>
-                            <div className="flex items-center space-x-2">
-                                <Users className="h-4 w-4 text-purple-600" />
-                                <div>
-                                    <div className="text-sm font-bold text-gray-900">{currentUser.totalTenants}</div>
-                                    <div className="text-xs text-gray-500">Tenants</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right Side Actions */}
-                    <div className="flex items-center space-x-3">
-                        {/* Search */}
-                        <div className="hidden md:block relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                            <Input
+                            <input
                                 type="text"
-                                placeholder="Search properties, tenants..."
+                                placeholder="Search..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-64 pl-10 pr-4 py-2 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                                onChange={handleSearchChange}
+                                className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white text-sm transition-all duration-200"
                             />
                         </div>
 
-                        {/* Estate Selector (for multi-estate users) */}
-                        {currentUser.estates.length > 1 && (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" className="flex items-center space-x-2 border-gray-300 hover:bg-gray-50">
-                                        <MapPin className="h-4 w-4 text-blue-600" />
-                                        <span className="hidden md:inline font-medium">Eastlands Plaza</span>
-                                        <ChevronDown className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-56">
-                                    <DropdownMenuLabel>Select Estate</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    {currentUser.estates.map((estate) => (
-                                        <DropdownMenuItem key={estate}>
-                                            <MapPin className="mr-2 h-4 w-4" />
-                                            <span>{estate}</span>
-                                        </DropdownMenuItem>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        )}
-
-                        {/* Notifications */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="relative hover:bg-gray-100">
-                                    <Bell className="h-5 w-5" />
-                                    {unreadNotifications > 0 && (
-                                        <Badge className="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs bg-red-500 text-white rounded-full min-w-[20px] h-5 flex items-center justify-center animate-pulse">
-                                            {unreadNotifications}
-                                        </Badge>
-                                    )}
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-80">
-                                <DropdownMenuLabel className="flex items-center justify-between">
-                                    Notifications
-                                    <Badge variant="secondary">{unreadNotifications} new</Badge>
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <div className="max-h-96 overflow-y-auto">
-                                    {notifications.map((notification) => (
-                                        <DropdownMenuItem key={notification.id} className="flex items-start space-x-3 p-3">
-                                            {getNotificationIcon(notification.type)}
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-gray-900 truncate">
-                                                    {notification.title}
-                                                </p>
-                                                <p className="text-sm text-gray-500 truncate">
-                                                    {notification.message}
-                                                </p>
-                                                <p className="text-xs text-gray-400 mt-1">
-                                                    {notification.time}
-                                                </p>
-                                            </div>
-                                            {notification.unread && (
-                                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                                            )}
-                                        </DropdownMenuItem>
-                                    ))}
-                                </div>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-center text-blue-600 hover:bg-blue-50">
-                                    View all notifications
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        {/* User Menu with Enhanced Details */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="flex items-center space-x-3 px-3 py-2 hover:bg-gray-50">
-                                    <div className="relative">
-                                        <Avatar className="h-9 w-9 border-2 border-blue-200">
-                                            <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-                                            <AvatarFallback className="bg-blue-600 text-white font-semibold">
-                                                {currentUser.name.split(' ').map(n => n[0]).join('')}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        {currentUser.isOnline && (
-                                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                        {/* Mobile Navigation Items */}
+                        {filteredNavItems.map((item) => (
+                            <div key={item.id} className="space-y-1">
+                                <button
+                                    className="w-full flex items-center justify-between px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-xl transition-colors duration-150"
+                                    onClick={() => item.dropdown && handleDropdownToggle(`mobile-${item.id}`)}
+                                >
+                                    <div className="flex items-center">
+                                        <item.icon className="h-5 w-5 mr-3" />
+                                        <span className="font-medium">{item.label}</span>
+                                        {item.badge && (
+                                            <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                                                {item.badge}
+                                            </span>
                                         )}
                                     </div>
-                                    <div className="hidden md:block text-left">
-                                        <div className="flex items-center space-x-2">
-                                            <p className="text-sm font-semibold text-gray-900">{currentUser.name}</p>
-                                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                                                {currentUser.role}
-                                            </Badge>
-                                        </div>
-                                        <div className="flex items-center space-x-1 mt-0.5">
-                                            <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                                            <span className="text-xs text-gray-500">{currentUser.rating} Rating</span>
-                                            <span className="text-xs text-gray-400">•</span>
-                                            <span className="text-xs text-gray-500">{currentUser.occupancyRate}% Occupancy</span>
-                                        </div>
-                                    </div>
-                                    <ChevronDown className="h-4 w-4 text-gray-400" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-80">
-                                <DropdownMenuLabel>
-                                    <div className="flex items-start space-x-3 p-2">
-                                        <div className="relative">
-                                            <Avatar className="h-12 w-12 border-2 border-blue-200">
-                                                <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-                                                <AvatarFallback className="bg-blue-600 text-white font-semibold text-lg">
-                                                    {currentUser.name.split(' ').map(n => n[0]).join('')}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            {currentUser.isOnline && (
-                                                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                                                    <Wifi className="h-2 w-2 text-white" />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center space-x-2 mb-1">
-                                                <p className="font-semibold text-gray-900">{currentUser.name}</p>
-                                                <Award className="h-4 w-4 text-yellow-500" />
-                                            </div>
-                                            <p className="text-sm text-gray-600 mb-2">{currentUser.email}</p>
-                                            <div className="flex items-center space-x-3 text-xs">
-                                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                                    {currentUser.role}
-                                                </Badge>
-                                                <span className="text-gray-500">Member since {currentUser.memberSince}</span>
-                                            </div>
-                                            <div className="mt-2 text-xs text-gray-500 flex items-center space-x-1">
-                                                <Eye className="h-3 w-3" />
-                                                <span>Last login: {currentUser.lastLogin}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
+                                    {item.dropdown && (
+                                        <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${
+                                            activeDropdown === `mobile-${item.id}` ? 'rotate-180' : ''
+                                        }`} />
+                                    )}
+                                </button>
 
-                                {/* Quick Stats */}
-                                <div className="px-2 py-3 bg-gray-50 mx-2 rounded-sm mb-2">
-                                    <div className="grid grid-cols-3 gap-3 text-center">
-                                        <div>
-                                            <div className="text-lg font-bold text-blue-600">{currentUser.totalProperties}</div>
-                                            <div className="text-xs text-gray-500">Properties</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-lg font-bold text-green-600">{currentUser.occupancyRate}%</div>
-                                            <div className="text-xs text-gray-500">Occupancy</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-lg font-bold text-yellow-600">{currentUser.rating}</div>
-                                            <div className="text-xs text-gray-500">Rating</div>
-                                        </div>
+                                {/* Mobile Dropdown Items */}
+                                {item.dropdown && activeDropdown === `mobile-${item.id}` && (
+                                    <div className="pl-8 space-y-1">
+                                        {item.dropdown.map((dropdownItem) => (
+                                            <button
+                                                key={dropdownItem.href}
+                                                className="w-full flex items-center px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors duration-150"
+                                            >
+                                                <dropdownItem.icon className="h-4 w-4 mr-3" />
+                                                <div className="text-left">
+                                                    <div className="font-medium">{dropdownItem.label}</div>
+                                                    {dropdownItem.description && (
+                                                        <div className="text-xs text-gray-500">{dropdownItem.description}</div>
+                                                    )}
+                                                </div>
+                                                {dropdownItem.badge && (
+                                                    <span className="ml-auto bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded-full">
+                                                        {dropdownItem.badge}
+                                                    </span>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+
+                        {/* Mobile Quick Actions */}
+                        {Array.isArray(quickActions) && quickActions.length > 0 && (
+                            <div className="border-t border-gray-100 pt-4 mt-4">
+                                <div className="px-4 mb-3">
+                                    <h4 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">Quick Actions</h4>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 px-2">
+                                    {quickActions.map((action, index) => (
+                                        <button
+                                            key={action.href || index}
+                                            className={`flex items-center justify-center p-3 rounded-xl text-white hover:opacity-90 transition-opacity duration-150 ${
+                                                action.color || 'bg-blue-500'
+                                            }`}
+                                        >
+                                            <action.icon className="h-4 w-4 mr-2" />
+                                            <span className="text-sm font-medium">{action.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Mobile User Info */}
+                        <div className="border-t border-gray-100 pt-4 mt-4">
+                            <div className="flex items-center px-4 py-2">
+                                <div className="relative">
+                                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 via-purple-600 to-blue-600 flex items-center justify-center text-white font-bold shadow-lg">
+                                        {user.name.split(' ').map(n => n[0]).join('')}
+                                    </div>
+                                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                                </div>
+                                <div className="ml-3 flex-1">
+                                    <p className="font-semibold text-gray-900">{user.name}</p>
+                                    <p className="text-sm text-gray-600">{user.email}</p>
+                                    <div className="flex items-center mt-1">
+                                        <span className={`text-xs px-2 py-1 rounded-lg font-medium ${getRoleBadgeColor(user.role)}`}>
+                                            Property Owner
+                                        </span>
                                     </div>
                                 </div>
-
-                                <DropdownMenuItem className="hover:bg-gray-50">
-                                    <User className="mr-2 h-4 w-4" />
-                                    <span>Profile Settings</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="hover:bg-gray-50">
-                                    <Settings className="mr-2 h-4 w-4" />
-                                    <span>Account Settings</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="hover:bg-gray-50">
-                                    <Shield className="mr-2 h-4 w-4" />
-                                    <span>Security & Privacy</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="hover:bg-gray-50">
-                                    <HelpCircle className="mr-2 h-4 w-4" />
-                                    <span>Help & Support</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-600 hover:bg-red-50">
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    <span>Sign Out</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </nav>
 
-                {/* Secondary Row - Navigation Items (Mobile/Tablet) */}
-                <div className="lg:hidden mt-4 border-t pt-3">
-                    <div className="flex items-center space-x-1 overflow-x-auto pb-2">
-                        {navigationItems.slice(0, 6).map((item) => {
-                            const Icon = item.icon;
-                            return (
-                                <Button
-                                    key={item.name}
-                                    variant={activeItem === item.name ? "default" : "ghost"}
-                                    size="sm"
-                                    className="flex items-center space-x-2 px-3 py-2 whitespace-nowrap"
-                                    onClick={() => setActiveItem(item.name)}
-                                >
-                                    <Icon className="h-4 w-4" />
-                                    <span className="text-sm">{item.name}</span>
-                                </Button>
-                            );
-                        })}
-                    </div>
-                </div>
-            </div>
-        </nav>
+            {/* Spacer to prevent content from hiding behind fixed navbar */}
+            <div className="h-16"></div>
+        </>
     );
 };
 
