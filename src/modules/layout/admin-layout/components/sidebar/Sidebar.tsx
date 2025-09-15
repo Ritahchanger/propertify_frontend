@@ -14,11 +14,19 @@ import {
 
 // Import sidebar data
 import { sidebarSections } from './sidebarmenu';
+
 import { quickActions, portfolioStats } from './data';
 
 // Redux imports
 import type { RootState, AppDispatch } from '@/store/store';
+
 import { useDispatch, useSelector } from 'react-redux';
+
+import { useNavigate } from 'react-router-dom';
+
+
+
+
 import {
   closeMobile,
   setActiveItem,
@@ -107,6 +115,12 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
     if (isCollapsed) return;
     dispatch(toggleSection(sectionId));
   }, [dispatch, isCollapsed]);
+
+  const navigate = useNavigate()
+
+  const handleNavigate = (url: string) => {
+    navigate(url)
+  }
 
   const handleItemClick = useCallback((itemId: string) => {
     dispatch(setActiveItem(itemId));
@@ -231,6 +245,12 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                     ${action.color || 'bg-blue-500 hover:bg-blue-600'}
                   `}
                   aria-label={`Quick action: ${action.label}`}
+
+                  onClick={
+                    () => {
+                      handleNavigate(action.href)
+                    }
+                  }
                 >
                   <action.icon className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform duration-200" aria-hidden="true" />
                   <span className="text-xs font-medium">{action.label}</span>
@@ -310,7 +330,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                     {section.items.map((item) => (
                       <button
                         key={item.id}
-                        onClick={() => handleItemClick(item.id)}
+                        onClick={() => { handleNavigate(item.href); handleItemClick(item.id) }}
                         className={`
                           w-full flex items-center justify-between p-3 rounded-xl text-left 
                           transition-all duration-200 group/item relative

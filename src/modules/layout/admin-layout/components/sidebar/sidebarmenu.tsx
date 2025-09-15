@@ -73,7 +73,7 @@ const sidebarSections = [
                 id: 'all-properties',
                 label: 'All Properties',
                 icon: Building2,
-                href: '/properties',
+                href: '/dashboard/property',
                 badge: 12,
                 description: 'Manage your property portfolio'
             },
@@ -81,7 +81,7 @@ const sidebarSections = [
                 id: 'vacant-units',
                 label: 'Vacant Units',
                 icon: Home,
-                href: '/properties/vacant',
+                href: '/dashboard/properties/vacant',
                 badge: 3,
                 description: 'Available rental units',
                 priority: 'medium'

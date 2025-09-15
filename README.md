@@ -20,6 +20,18 @@ A modern, comprehensive real estate management platform designed for property ow
 - **Property Analytics**: View occupancy rates, revenue analytics, and performance metrics
 - **Estate Documentation**: Store and manage property documents securely
 
+#### Layout
+
+
+#### welcome page
+![Properties](public/screenshots/screen2.png)
+
+#### units page
+![Units](public/screenshots/screen3.png)
+
+### dashboard page
+![Dashboard](public/screenshots/screen1.png)
+
 ### 👥 **User Management**
 - **Role-Based Access Control**: Support for owners, managers, tenants, and accountants
 - **Multi-Role Support**: Users can have different roles across different properties
