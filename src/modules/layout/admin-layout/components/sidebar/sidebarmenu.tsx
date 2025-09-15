@@ -129,7 +129,7 @@ const sidebarSections = [
                 id: 'all-tenants',
                 label: 'All Tenants',
                 icon: Users,
-                href: '/tenants',
+                href: '/dashboard/properties/tenants',
                 badge: 45,
                 description: 'Manage current tenants'
             },

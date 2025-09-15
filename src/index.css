@@ -141,7 +141,7 @@
 ::-webkit-scrollbar-thumb {
   background: #4a6cf7;
   /* primary admin blue */
-  border-radius: 10px;
+  border-radius:2px;
   transition: background 0.3s ease;
 }
 
