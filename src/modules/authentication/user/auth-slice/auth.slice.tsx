@@ -16,10 +16,10 @@ export const registerUser = createAsyncThunk<
             payload
         );
 
-        // Save authentication state in sessionStorage
+        // Save authentication state in localStorage
         if (typeof window !== "undefined") {
-            sessionStorage.setItem("isAuthenticated", "true");
-            sessionStorage.setItem("user", JSON.stringify(response.data.user));
+            localStorage.setItem("isAuthenticated", "true");
+            localStorage.setItem("user", JSON.stringify(response.data.user));
         }
 
         return response.data;
@@ -43,8 +43,8 @@ export const loginUser = createAsyncThunk<
 
 
         if (typeof window !== "undefined") {
-            sessionStorage.setItem("isAuthenticated", "true");
-            sessionStorage.setItem("user", JSON.stringify(response.data.user));
+            localStorage.setItem("isAuthenticated", "true");
+            localStorage.setItem("user", JSON.stringify(response.data.user));
         }
 
         return response.data;
@@ -67,8 +67,8 @@ export const logoutUser = createAsyncThunk<void, void, { rejectValue: string }>(
             console.log('loggout called')
 
             if (typeof window !== "undefined") {
-                sessionStorage.removeItem("isAuthenticated");
-                sessionStorage.removeItem("user");
+                localStorage.removeItem("isAuthenticated");
+                localStorage.removeItem("user");
             }
             return true;
         } catch (err: any) {
@@ -89,8 +89,8 @@ export const authSlice = createSlice({
     reducers: {
         loadUserFromStorage: (state) => {
             if (typeof window !== "undefined") {
-                const user = sessionStorage.getItem("user");
-                const isAuthenticated = sessionStorage.getItem("isAuthenticated");
+                const user = localStorage.getItem("user");
+                const isAuthenticated = localStorage.getItem("isAuthenticated");
                 if (user && isAuthenticated === "true") {
                     state.user = JSON.parse(user);
                     state.isAuthenticated = true;

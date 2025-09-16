@@ -4,6 +4,7 @@ import PropertifySidebar from "./components/sidebar/Sidebar"
 import type { RootState } from "@/store/store"
 import { useSelector, useDispatch } from "react-redux"
 import { closeMobile } from "./components/sidebar/SidebarSlice"
+import AddPropertyModal from "@/modules/property/components/AddProperty"
 
 const MOBILE_BREAKPOINT = 1024;
 
@@ -105,6 +106,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     </div>
                 </div>
             </div>
+            <AddPropertyModal />
         </div>
     )
 }

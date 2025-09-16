@@ -20,65 +20,23 @@ import {
   FileText,
   Zap,
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import Layout from '@/modules/layout/admin-layout/Layout';
 
-// Types
-interface Property {
-  id: string;
-  name: string;
-  address: string;
-  type: 'apartment' | 'house' | 'commercial';
-  units: number;
-  occupiedUnits: number;
-  monthlyRevenue: number;
-  totalRevenue: number;
-  occupancyRate: number;
-  status: 'active' | 'maintenance' | 'vacant';
-  image: string;
-  lastUpdated: string;
-}
+import type { Transaction, DashboardStats, Property } from '../types/types';
 
-interface Tenant {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  unit: string;
-  property: string;
-  rentAmount: number;
-  leaseStart: string;
-  leaseEnd: string;
-  status: 'active' | 'pending' | 'overdue' | 'expired';
-  avatar: string;
-}
+import { useDispatch } from 'react-redux';
 
-interface Transaction {
-  id: string;
-  type: 'rent' | 'deposit' | 'maintenance' | 'utility';
-  amount: number;
-  tenant: string;
-  property: string;
-  date: string;
-  status: 'completed' | 'pending' | 'failed';
-  description: string;
-}
+import type { AppDispatch } from '@/store/store';
 
-interface DashboardStats {
-  totalProperties: number;
-  totalUnits: number;
-  occupiedUnits: number;
-  monthlyRevenue: number;
-  totalRevenue: number;
-  avgOccupancyRate: number;
-  pendingMaintenance: number;
-  overduePayments: number;
-}
+import { openAddPropertyModal } from '@/modules/property/features/AddPropertyModalSlice';
 
 const OwnersDashboard: React.FC = () => {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProperty, setSelectedProperty] = useState<string>('all');
+
+  const dispatch = useDispatch<AppDispatch>()
 
   // Mock data
   const stats: DashboardStats = useMemo(() => ({
@@ -256,7 +214,13 @@ const OwnersDashboard: React.FC = () => {
                 <option value="90d">Last 90 days</option>
                 <option value="1y">Last year</option>
               </select>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-200 flex items-center">
+              <button className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-200 flex items-center"
+
+                onClick={() => {
+                  dispatch(openAddPropertyModal())
+                }}
+
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Property
               </button>

@@ -4,12 +4,15 @@ import sidebarSlice from "@/modules/layout/admin-layout/components/sidebar/Sideb
 
 import authSlice from "@/modules/authentication/user/auth-slice/auth.slice";
 
+import propertyModalSlice from "@/modules/property/features/AddPropertyModalSlice";
+
 export const store = configureStore({
 
     reducer: {
 
         sidebar: sidebarSlice.reducer,
-        auth: authSlice.reducer
+        auth: authSlice.reducer,
+        openPropertyModal: propertyModalSlice.reducer
 
     }
 

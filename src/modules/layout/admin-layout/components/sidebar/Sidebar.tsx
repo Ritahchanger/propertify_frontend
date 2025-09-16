@@ -19,6 +19,8 @@ import type { RootState, AppDispatch } from '@/store/store';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 
+import { openAddPropertyModal } from '@/modules/property/features/AddPropertyModalSlice';
+
 import {
   closeMobile,
   setActiveItem,
@@ -298,13 +300,20 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
               {quickActions.map((action) => (
                 <button
                   key={action.id}
+
                   className={`
                     flex items-center justify-center p-3 rounded-xl text-white 
                     transition-all duration-200 group hover:shadow-lg hover:scale-105 active:scale-95
                     ${action.color || 'bg-blue-500 hover:bg-blue-600'}
                   `}
                   aria-label={`Quick action: ${action.label}`}
-                  onClick={() => handleNavigate(action.href)}
+                  onClick={() => {
+                    if (action.id === "add-property") {
+                      dispatch(openAddPropertyModal())
+                    } else {
+                      handleNavigate(action.href)
+                    }
+                  }}
                   onTouchStart={handleTouchStart}
                 >
                   <action.icon className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform duration-200" aria-hidden="true" />
