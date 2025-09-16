@@ -74,6 +74,9 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
       const isMobileView = window.innerWidth < MOBILE_BREAKPOINT;
       setIsMobile(isMobileView);
 
+      // Clear hover state on resize
+      setHoveredItem(null);
+
       // Auto-close mobile menu on desktop
       if (!isMobileView && mobileOpen) {
         dispatch(closeMobile());
@@ -85,6 +88,13 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
 
     return () => window.removeEventListener('resize', handleResize);
   }, [dispatch, mobileOpen]);
+
+  // Clear hover state when mobile menu closes
+  useEffect(() => {
+    if (!mobileOpen) {
+      setHoveredItem(null);
+    }
+  }, [mobileOpen]);
 
   // Memoized filtered sections for performance
   const filteredSections = useMemo(() => {
@@ -133,10 +143,10 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
     }
   }, [dispatch, isMobile, mobileOpen]);
 
-  // Enhanced mobile hover handlers
+  // Fixed hover handlers - only show tooltip when collapsed on desktop
   const handleMouseEnter = useCallback((itemId: string, event: React.MouseEvent) => {
-    // Show tooltip on both mobile and when sidebar is collapsed
-    if ((isMobile && mobileOpen) || (!isMobile && isCollapsed)) {
+    // Only show tooltip when sidebar is collapsed on desktop
+    if (!isMobile && isCollapsed) {
       const rect = event.currentTarget.getBoundingClientRect();
       setHoverPosition({
         x: rect.right + 10,
@@ -144,28 +154,20 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
       });
       setHoveredItem(itemId);
     }
-  }, [isMobile, mobileOpen, isCollapsed]);
+  }, [isMobile, isCollapsed]);
 
   const handleMouseLeave = useCallback(() => {
-    if ((isMobile && mobileOpen) || (!isMobile && isCollapsed)) {
+    // Only clear tooltip when sidebar is collapsed on desktop
+    if (!isMobile && isCollapsed) {
       setHoveredItem(null);
     }
-  }, [isMobile, mobileOpen, isCollapsed]);
+  }, [isMobile, isCollapsed]);
 
-  // Touch-specific handler for better mobile support
-  const handleTouchStart = useCallback((itemId: string, event: React.TouchEvent) => {
-    if (isMobile && mobileOpen) {
-      const rect = event.currentTarget.getBoundingClientRect();
-      setHoverPosition({
-        x: rect.right + 10,
-        y: rect.top + (rect.height / 2)
-      });
-      setHoveredItem(itemId);
-
-      // Auto-hide after 2 seconds on touch
-      setTimeout(() => setHoveredItem(null), 2000);
-    }
-  }, [isMobile, mobileOpen]);
+  // Remove touch handlers to prevent mobile issues
+  const handleTouchStart = useCallback(() => {
+    // Clear any existing hover state on touch
+    setHoveredItem(null);
+  }, []);
 
   // Helper function for priority badge colors
   const getPriorityBadgeColor = useCallback((priority?: string): string => {
@@ -203,8 +205,8 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
         />
       )}
 
-      {/* Enhanced Mobile/Collapsed Hover Tooltip */}
-      {((isMobile && mobileOpen) || (!isMobile && isCollapsed)) && hoveredItem && hoveredItemData && (
+      {/* Hover Tooltip - Only show when collapsed on desktop */}
+      {!isMobile && isCollapsed && hoveredItem && hoveredItemData && (
         <div
           className="fixed z-[60] bg-gray-900 text-white text-sm rounded-lg shadow-2xl border border-gray-700 px-4 py-3 max-w-xs pointer-events-none transform -translate-y-1/2"
           style={{
@@ -303,6 +305,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                   `}
                   aria-label={`Quick action: ${action.label}`}
                   onClick={() => handleNavigate(action.href)}
+                  onTouchStart={handleTouchStart}
                 >
                   <action.icon className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform duration-200" aria-hidden="true" />
                   <span className="text-xs font-medium">{action.label}</span>
@@ -327,6 +330,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                   transition-all duration-200 bg-gray-50 hover:bg-white"
                 aria-label="Search navigation items"
+                onTouchStart={handleTouchStart}
               />
             </div>
           </section>
@@ -342,7 +346,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                   onClick={() => handleSectionToggle(section.id)}
                   onMouseEnter={(e) => handleMouseEnter(`section-${section.id}`, e)}
                   onMouseLeave={handleMouseLeave}
-                  onTouchStart={(e) => handleTouchStart(`section-${section.id}`, e)}
+                  onTouchStart={handleTouchStart}
                   className={`
                     w-full flex items-center justify-between p-3 text-left rounded-xl 
                     hover:bg-gray-50 transition-all duration-200 group/section
@@ -388,7 +392,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                         onClick={() => { handleNavigate(item.href); handleItemClick(item.id); }}
                         onMouseEnter={(e) => handleMouseEnter(item.id, e)}
                         onMouseLeave={handleMouseLeave}
-                        onTouchStart={(e) => handleTouchStart(item.id, e)}
+                        onTouchStart={handleTouchStart}
                         className={`
                           w-full flex items-center justify-between p-3 rounded-xl text-left 
                           transition-all duration-200 group/item relative
@@ -447,7 +451,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                 className="w-full flex items-center p-3 text-left rounded-xl hover:bg-gray-50 transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-blue-500"
                 onMouseEnter={(e) => handleMouseEnter('help-support', e)}
                 onMouseLeave={handleMouseLeave}
-                onTouchStart={(e) => handleTouchStart('help-support', e)}
+                onTouchStart={handleTouchStart}
               >
                 <HelpCircle className="h-4 w-4 text-gray-500 mr-3 group-hover:text-blue-600 transition-colors duration-200" aria-hidden="true" />
                 <div>
@@ -459,7 +463,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                 className="w-full flex items-center p-3 text-left rounded-xl hover:bg-gray-50 transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-blue-500"
                 onMouseEnter={(e) => handleMouseEnter('settings', e)}
                 onMouseLeave={handleMouseLeave}
-                onTouchStart={(e) => handleTouchStart('settings', e)}
+                onTouchStart={handleTouchStart}
               >
                 <Settings className="h-4 w-4 text-gray-500 mr-3 group-hover:text-blue-600 transition-colors duration-200" aria-hidden="true" />
                 <div>
@@ -476,7 +480,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                 aria-label="Help & Support"
                 onMouseEnter={(e) => handleMouseEnter('help-support', e)}
                 onMouseLeave={handleMouseLeave}
-                onTouchStart={(e) => handleTouchStart('help-support', e)}
+                onTouchStart={handleTouchStart}
               >
                 <HelpCircle className="h-4 w-4 mx-auto" />
               </button>
@@ -486,7 +490,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                 aria-label="Settings"
                 onMouseEnter={(e) => handleMouseEnter('settings', e)}
                 onMouseLeave={handleMouseLeave}
-                onTouchStart={(e) => handleTouchStart('settings', e)}
+                onTouchStart={handleTouchStart}
               >
                 <Settings className="h-4 w-4 mx-auto" />
               </button>

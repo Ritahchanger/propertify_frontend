@@ -16,7 +16,6 @@ import {
     FileText,
     AlertTriangle,
     Clock,
-    Star,
     CreditCard,
     HelpCircle,
     PanelLeftOpen,
@@ -24,25 +23,24 @@ import {
     Zap,
 } from 'lucide-react';
 
-// Import data only
-import { 
-    navigationItems, 
-    notifications, 
-    quickActions, 
-    type UserRole, 
-    type NotificationItem 
+import {
+    navigationItems,
+    notifications,
+    quickActions,
+    type UserRole,
+    type NotificationItem
 } from './data';
 
-// Redux imports
+
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '@/store/store';
 import {
-    closeMobile,
-    toggleMobile,
-    setActiveItem,
-    toggleSection,
     toggleCollapse
 } from '../sidebar/SidebarSlice';
+
+import { logoutUser } from '@/modules/authentication/user/auth-slice/auth.slice';
+
+import { useNavigate } from 'react-router-dom';
 
 // Types
 interface User {
@@ -73,6 +71,8 @@ const PropertifyNavbar: React.FC = () => {
     const dispatch = useDispatch<AppDispatch>();
     const { isCollapsed } = useSelector((state: RootState) => state.sidebar);
 
+    const navigate = useNavigate()
+
     // User data - mock data since no external components
     const user: User = useMemo(() => ({
         name: "Rita Changer",
@@ -88,18 +88,18 @@ const PropertifyNavbar: React.FC = () => {
     }), []);
 
     // Computed values with safety checks
-    const unreadNotifications = useMemo(() => 
-        Array.isArray(notifications) ? notifications.filter(n => !n.read).length : 0, 
+    const unreadNotifications = useMemo(() =>
+        Array.isArray(notifications) ? notifications.filter(n => !n.read).length : 0,
         []
     );
-    
-    const urgentNotifications = useMemo(() => 
-        Array.isArray(notifications) ? notifications.filter(n => n.priority === 'high' && !n.read).length : 0, 
+
+    const urgentNotifications = useMemo(() =>
+        Array.isArray(notifications) ? notifications.filter(n => n.priority === 'high' && !n.read).length : 0,
         []
     );
-    
-    const filteredNavItems = useMemo(() => 
-        Array.isArray(navigationItems) ? navigationItems.filter(item => item.roles?.includes(user.role)) : [], 
+
+    const filteredNavItems = useMemo(() =>
+        Array.isArray(navigationItems) ? navigationItems.filter(item => item.roles?.includes(user.role)) : [],
         [user.role]
     );
 
@@ -128,6 +128,15 @@ const PropertifyNavbar: React.FC = () => {
         setShowQuickActions(!showQuickActions);
     }, [showQuickActions]);
 
+    const handleLogout = async () => {
+        try {
+            await dispatch(logoutUser()).unwrap();
+            navigate('/');
+        } catch (error) {
+            console.error('Logout failed:', error);
+        }
+    }
+
     // Utility functions
     const getNotificationIcon = useCallback((type: NotificationItem['type']) => {
         const iconMap = {
@@ -141,7 +150,7 @@ const PropertifyNavbar: React.FC = () => {
 
     const getNotificationColor = useCallback((type: NotificationItem['type'], priority: NotificationItem['priority']) => {
         if (priority === 'high') return 'bg-red-100 text-red-600 border-red-200';
-        
+
         const colorMap = {
             payment: 'bg-green-100 text-green-600 border-green-200',
             maintenance: 'bg-yellow-100 text-yellow-600 border-yellow-200',
@@ -198,22 +207,21 @@ const PropertifyNavbar: React.FC = () => {
 
     return (
         <>
-            <nav className={`bg-white shadow-lg border-b border-gray-100 fixed w-full right-0 left-0 top-0 z-50 transition-all duration-300 ${
-                isScrolled ? 'shadow-2xl backdrop-blur-md bg-white/95 border-gray-200' : ''
-            }`}>
+            <nav className={`bg-white shadow-lg border-b border-gray-100 fixed w-full right-0 left-0 top-0 z-50 transition-all duration-300 ${isScrolled ? 'shadow-2xl backdrop-blur-md bg-white/95 border-gray-200' : ''
+                }`}>
                 <div className="px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
                         {/* Logo and Brand Section */}
                         <div className="flex items-center justify-items-start">
                             <div className="flex-shrink-0 flex items-center group cursor-pointer">
                                 {/* Sidebar Toggle Button */}
-                                <div className="mr-4 ml-[-18px] bg-amber-200">
+                                <div className="mr-4 ml-[-18px] rounded-[2px] bg-blue-500">
                                     <button
                                         onClick={handleSidebarToggle}
                                         className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                                         aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                                     >
-                                        {isCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+                                        {isCollapsed ? <PanelLeftOpen className="h-5 w-5" color="#fff" /> : <PanelLeftClose className="h-5 w-5" color="#fff" />}
                                     </button>
                                 </div>
 
@@ -240,7 +248,7 @@ const PropertifyNavbar: React.FC = () => {
                             {/* Desktop Navigation */}
                             <div className="hidden lg:block ml-10">
                                 <div className="flex items-baseline space-x-1">
-                                    {filteredNavItems.map((item) => (
+                                    {filteredNavItems.map((item: any) => (
                                         <div key={item.id} className="relative dropdown-container">
                                             {item.dropdown ? (
                                                 <div className="group">
@@ -255,15 +263,13 @@ const PropertifyNavbar: React.FC = () => {
                                                                 {item.badge}
                                                             </span>
                                                         )}
-                                                        <ChevronDown className={`h-3 w-3 ml-1.5 transition-transform duration-200 ${
-                                                            activeDropdown === item.id ? 'rotate-180' : 'group-hover:rotate-180'
-                                                        }`} />
+                                                        <ChevronDown className={`h-3 w-3 ml-1.5 transition-transform duration-200 ${activeDropdown === item.id ? 'rotate-180' : 'group-hover:rotate-180'
+                                                            }`} />
                                                     </button>
 
                                                     {/* Dropdown Menu */}
-                                                    <div className={`absolute left-0 mt-1 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 transition-all duration-200 z-50 ${
-                                                        activeDropdown === item.id ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'
-                                                    }`}>
+                                                    <div className={`absolute left-0 mt-1 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 transition-all duration-200 z-50 ${activeDropdown === item.id ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'
+                                                        }`}>
                                                         <div className="p-3">
                                                             <div className="flex items-center justify-between px-3 py-2 mb-2">
                                                                 <div className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
@@ -272,7 +278,7 @@ const PropertifyNavbar: React.FC = () => {
                                                                 <span className="text-xs text-gray-500">{item.dropdown?.length || 0} options</span>
                                                             </div>
                                                             <div className="space-y-1">
-                                                                {item.dropdown?.map((dropdownItem) => (
+                                                                {item.dropdown?.map((dropdownItem: any) => (
                                                                     <button
                                                                         key={dropdownItem.href}
                                                                         className="w-full flex items-center justify-between px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-all duration-150 group"
@@ -303,7 +309,7 @@ const PropertifyNavbar: React.FC = () => {
                                                     {item.label}
                                                     {item.badge && (
                                                         <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse shadow-lg">
-                                                            {item.badge}
+                                                            {item?.badge}
                                                         </span>
                                                     )}
                                                 </button>
@@ -334,9 +340,8 @@ const PropertifyNavbar: React.FC = () => {
                                                 {quickActions.map((action, index) => (
                                                     <button
                                                         key={action.href || index}
-                                                        className={`flex items-center p-3 rounded-lg text-white hover:opacity-90 transition-opacity duration-150 ${
-                                                            action.color || 'bg-blue-500'
-                                                        }`}
+                                                        className={`flex items-center p-3 rounded-lg text-white hover:opacity-90 transition-opacity duration-150 ${action.color || 'bg-blue-500'
+                                                            }`}
                                                     >
                                                         <action.icon className="h-4 w-4 mr-2" />
                                                         <span className="text-xs font-medium">{action.label}</span>
@@ -413,9 +418,8 @@ const PropertifyNavbar: React.FC = () => {
                                                 return (
                                                     <div
                                                         key={notification.id}
-                                                        className={`flex items-start p-4 hover:bg-gray-50 transition-colors duration-150 border-l-4 ${
-                                                            !notification.read ? 'bg-blue-50/50 border-l-blue-500' : 'border-l-transparent'
-                                                        } ${notification.priority === 'high' ? 'border-l-red-500 bg-red-50/30' : ''}`}
+                                                        className={`flex items-start p-4 hover:bg-gray-50 transition-colors duration-150 border-l-4 ${!notification.read ? 'bg-blue-50/50 border-l-blue-500' : 'border-l-transparent'
+                                                            } ${notification.priority === 'high' ? 'border-l-red-500 bg-red-50/30' : ''}`}
                                                     >
                                                         <div className={`p-2.5 rounded-lg mr-3 border ${getNotificationColor(notification.type, notification.priority)}`}>
                                                             <IconComponent className="h-4 w-4" />
@@ -582,9 +586,11 @@ const PropertifyNavbar: React.FC = () => {
                                                 <div className="text-xs text-gray-500">Get assistance and documentation</div>
                                             </div>
                                         </button>
-                                        
+
                                         <div className="border-t border-gray-100 mt-2 pt-2">
-                                            <button className="w-full flex items-center px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors duration-150 group">
+                                            <button className="w-full flex items-center px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors duration-150 group"
+                                                onClick={handleLogout}
+                                            >
                                                 <LogOut className="h-4 w-4 mr-3 group-hover:scale-110 transition-transform duration-150" />
                                                 <div className="text-left">
                                                     <div className="font-medium">Sign Out</div>
@@ -611,9 +617,8 @@ const PropertifyNavbar: React.FC = () => {
                 </div>
 
                 {/* Mobile menu */}
-                <div className={`lg:hidden mobile-menu transition-all duration-300 ease-in-out ${
-                    isMobileMenuOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
-                }`}>
+                <div className={`lg:hidden mobile-menu transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
+                    }`}>
                     <div className="px-4 pt-2 pb-6 space-y-2 border-t border-gray-100 bg-white shadow-lg">
                         {/* Mobile Search */}
                         <div className="relative mb-4">
@@ -646,9 +651,8 @@ const PropertifyNavbar: React.FC = () => {
                                         )}
                                     </div>
                                     {item.dropdown && (
-                                        <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${
-                                            activeDropdown === `mobile-${item.id}` ? 'rotate-180' : ''
-                                        }`} />
+                                        <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${activeDropdown === `mobile-${item.id}` ? 'rotate-180' : ''
+                                            }`} />
                                     )}
                                 </button>
 
@@ -689,9 +693,8 @@ const PropertifyNavbar: React.FC = () => {
                                     {quickActions.map((action, index) => (
                                         <button
                                             key={action.href || index}
-                                            className={`flex items-center justify-center p-3 rounded-xl text-white hover:opacity-90 transition-opacity duration-150 ${
-                                                action.color || 'bg-blue-500'
-                                            }`}
+                                            className={`flex items-center justify-center p-3 rounded-xl text-white hover:opacity-90 transition-opacity duration-150 ${action.color || 'bg-blue-500'
+                                                }`}
                                         >
                                             <action.icon className="h-4 w-4 mr-2" />
                                             <span className="text-sm font-medium">{action.label}</span>
@@ -713,7 +716,8 @@ const PropertifyNavbar: React.FC = () => {
                                 <div className="ml-3 flex-1">
                                     <p className="font-semibold text-gray-900">{user.name}</p>
                                     <p className="text-sm text-gray-600">{user.email}</p>
-                                    <div className="flex items-center mt-1">
+                                    <div className="flex items-center mt-1">Property 'badge' does not exist on type 'never'.ts(2339)
+                                        any
                                         <span className={`text-xs px-2 py-1 rounded-lg font-medium ${getRoleBadgeColor(user.role)}`}>
                                             Property Owner
                                         </span>

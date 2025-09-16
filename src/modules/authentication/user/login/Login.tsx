@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Building2,
     Eye,
@@ -8,14 +8,16 @@ import {
     ArrowRight,
     Shield,
     Users,
-    BarChart3,
-    CheckCircle,
-    Zap,
     TrendingUp,
     Home
 } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
+import Welcome from './Welcome';
+
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '@/store/store';
+import { loginUser } from '../auth-slice/auth.slice';
 
 interface FormData {
     email: string;
@@ -23,77 +25,40 @@ interface FormData {
     rememberMe: boolean;
 }
 
-interface WelcomeFeature {
-    icon: React.ElementType;
-    title: string;
-    description: string;
-    color: string;
-}
-
-interface Stat {
-    label: string;
-    value: string;
-    trend: string;
-}
-
 const Login: React.FC = () => {
-    const navigate = useNavigate()
+    const navigate = useNavigate();
+    const dispatch = useDispatch<AppDispatch>();
+    const { isAuthenticated, loading, error } = useSelector((state: RootState) => state.auth);
+
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const [email, setEmail] = useState<string>('');
     const [password, setPassword] = useState<string>('');
     const [rememberMe, setRememberMe] = useState<boolean>(false);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [formError, setFormError] = useState<string | null>(null);
 
-    const handleSubmit = async (): Promise<void> => {
-        setIsLoading(true);
-
-        const formData: FormData = { email, password, rememberMe };
-
-        // Simulate login process
-        setTimeout(() => {
-            setIsLoading(false);
-            navigate("/dashboard")
-        }, 2000);
-    };
-
-    const features: WelcomeFeature[] = [
-        {
-            icon: Building2,
-            title: "Property Portfolio Management",
-            description: "Manage all your properties from a single, intuitive dashboard with real-time insights.",
-            color: "from-blue-500 to-blue-600"
-        },
-        {
-            icon: Users,
-            title: "Tenant & Lease Management",
-            description: "Streamline tenant applications, lease renewals, and communication all in one place.",
-            color: "from-green-500 to-green-600"
-        },
-        {
-            icon: BarChart3,
-            title: "Financial Analytics & Reporting",
-            description: "Track income, expenses, and ROI with comprehensive financial reporting tools.",
-            color: "from-purple-500 to-purple-600"
-        },
-        {
-            icon: Zap,
-            title: "Maintenance Automation",
-            description: "Automate work orders, track repairs, and manage vendor relationships effortlessly.",
-            color: "from-orange-500 to-orange-600"
+    // Redirect to dashboard if already authenticated
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate("/dashboard");
         }
-    ];
+    }, [isAuthenticated, navigate]);
 
-    const stats: Stat[] = [
-        { label: "Properties Managed", value: "50,000+", trend: "+12% this quarter" },
-        { label: "Happy Property Owners", value: "15,000+", trend: "98% satisfaction" },
-        { label: "Monthly Rent Collected", value: "$2.5B+", trend: "+18% YoY growth" }
-    ];
+    const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+        e.preventDefault();
+        setFormError(null);
 
-    const testimonials: string[] = [
-        "Propertify transformed our property management workflow. We've increased efficiency by 300%!",
-        "The best investment we made for our rental business. Everything is automated and organized.",
-        "Managing 200+ units has never been easier. Propertify handles it all seamlessly."
-    ];
+        if (!email || !password) {
+            setFormError("Please fill in all fields");
+            return;
+        }
+
+        try {
+            await dispatch(loginUser({ email, password })).unwrap();
+            // The useEffect hook will handle navigation when isAuthenticated becomes true
+        } catch (err: any) {
+            setFormError(err || "Login failed");
+        }
+    };
 
     return (
         <div className="min-h-screen flex">
@@ -106,81 +71,7 @@ const Login: React.FC = () => {
                     <div className="absolute bottom-40 left-40 w-48 h-48 rounded-full bg-white animate-pulse delay-200" />
                     <div className="absolute bottom-20 right-20 w-24 h-24 rounded-full bg-white animate-pulse delay-300" />
                 </div>
-
-                <div className="relative z-10 flex flex-col justify-between p-12 w-full">
-                    {/* Header */}
-                    <div>
-                        <div className="flex items-center space-x-3 mb-8">
-                            <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm">
-                                <Building2 className="h-8 w-8 text-white" />
-                            </div>
-                            <div>
-                                <h1 className="text-3xl font-bold">Propertify</h1>
-                                <p className="text-blue-100">Property Management Platform</p>
-                            </div>
-                        </div>
-
-                        <div className="mb-12">
-                            <h2 className="text-4xl font-bold mb-6 leading-tight">
-                                Transform Your Property Management Experience
-                            </h2>
-                            <p className="text-xl text-blue-100 leading-relaxed max-w-md">
-                                Join thousands of successful property managers who've streamlined their operations and maximized their returns with Propertify.
-                            </p>
-                        </div>
-
-                        {/* Features */}
-                        <div className="space-y-6 mb-12">
-                            {features.map((feature, index) => (
-                                <div key={index} className="flex items-start space-x-4 group">
-                                    <div className={`flex-shrink-0 w-12 h-12 bg-gradient-to-r ${feature.color} rounded-lg flex items-center justify-center backdrop-blur-sm shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                                        <feature.icon className="h-6 w-6 text-white" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                                        <p className="text-blue-100 text-sm leading-relaxed">{feature.description}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Bottom Section */}
-                    <div>
-                        {/* Stats */}
-                        <div className="grid grid-cols-1 gap-6 mb-8">
-                            {stats.map((stat, index) => (
-                                <div key={index} className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <div className="text-2xl font-bold">{stat.value}</div>
-                                            <div className="text-blue-200 text-sm">{stat.label}</div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-green-300 text-xs font-medium">{stat.trend}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Testimonial Carousel */}
-                        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
-                            <div className="flex items-center space-x-2 mb-4">
-                                {[...Array(5)].map((_, i) => (
-                                    <CheckCircle key={i} className="h-4 w-4 text-yellow-400 fill-current" />
-                                ))}
-                                <span className="text-sm text-blue-100 ml-2">Trusted by thousands</span>
-                            </div>
-                            <p className="text-blue-50 italic leading-relaxed">
-                                "{testimonials[0]}"
-                            </p>
-                            <div className="text-xs text-blue-200 mt-3">
-                                - Sarah Chen, Portfolio Manager at Urban Properties
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <Welcome />
             </div>
 
             {/* Right Side - Login Form */}
@@ -200,8 +91,15 @@ const Login: React.FC = () => {
                         <p className="text-gray-600 text-center">Sign in to access your property management dashboard</p>
                     </div>
 
+                    {/* Error Message */}
+                    {(error || formError) && (
+                        <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-lg text-sm">
+                            {error || formError}
+                        </div>
+                    )}
+
                     {/* Login Form */}
-                    <div className="bg-white rounded-sm shadow-xl p-8 border border-gray-100">
+                    <form onSubmit={handleSubmit} className="bg-white rounded-sm shadow-xl p-8 border border-gray-100">
                         <div className="space-y-6">
                             {/* Email Field */}
                             <div>
@@ -280,11 +178,11 @@ const Login: React.FC = () => {
 
                             {/* Submit Button */}
                             <button
-                                onClick={handleSubmit}
-                                disabled={isLoading || !email || !password}
+                                type="submit"
+                                disabled={loading || !email || !password}
                                 className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                             >
-                                {isLoading ? (
+                                {loading ? (
                                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 ) : (
                                     <>
@@ -321,7 +219,7 @@ const Login: React.FC = () => {
                                 </p>
                             </div>
                         </div>
-                    </div>
+                    </form>
 
                     {/* Security Notice */}
                     <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
