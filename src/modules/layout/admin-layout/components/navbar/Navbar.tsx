@@ -218,7 +218,7 @@ const PropertifyNavbar: React.FC = () => {
                                 <div className="mr-4 ml-[-18px] rounded-[2px] bg-blue-500">
                                     <button
                                         onClick={handleSidebarToggle}
-                                        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-blue-600 rounded-lg transition-colors"
                                         aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                                     >
                                         {isCollapsed ? <PanelLeftOpen className="h-5 w-5" color="#fff" /> : <PanelLeftClose className="h-5 w-5" color="#fff" />}

@@ -196,6 +196,10 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
     return null;
   }, [hoveredItem, filteredSections]);
 
+  // Determine if we should show the expanded view
+  const shouldShowExpanded = !isCollapsed && !isMobile;
+  const shouldShowCollapsed = isCollapsed || isMobile;
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -236,8 +240,8 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
       <aside
         className={`
           fixed inset-y-0 left-0 z-50 top-[65px]
-          ${isCollapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED}
           ${isMobile ? (mobileOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}
+          ${isMobile ? SIDEBAR_WIDTH_EXPANDED : (isCollapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED)}
           bg-white border-r border-gray-200 shadow-xl lg:shadow-none
           transition-all duration-300 ease-in-out
           flex flex-col h-[calc(100vh-65px)]
@@ -246,7 +250,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
         aria-label="Main navigation"
       >
         {/* Portfolio Summary */}
-        {!isCollapsed && (
+        {shouldShowExpanded && (
           <section
             className="p-4 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-b border-gray-200"
             aria-labelledby="portfolio-summary-title"
@@ -293,14 +297,13 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
         )}
 
         {/* Quick Actions */}
-        {!isCollapsed && Array.isArray(quickActions) && quickActions.length > 0 && (
+        {shouldShowExpanded && Array.isArray(quickActions) && quickActions.length > 0 && (
           <section className="p-4 border-b border-gray-200" aria-labelledby="quick-actions-title">
             <h3 id="quick-actions-title" className="text-sm font-semibold text-gray-700 mb-3">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-2">
               {quickActions.map((action) => (
                 <button
                   key={action.id}
-
                   className={`
                     flex items-center justify-center p-3 rounded-xl text-white 
                     transition-all duration-200 group hover:shadow-lg hover:scale-105 active:scale-95
@@ -325,7 +328,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
         )}
 
         {/* Search Bar */}
-        {!isCollapsed && (
+        {shouldShowExpanded && (
           <section className="p-4 border-b border-gray-200" aria-labelledby="search-title">
             <h3 id="search-title" className="sr-only">Search navigation</h3>
             <div className="relative">
@@ -359,7 +362,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                   className={`
                     w-full flex items-center justify-between p-3 text-left rounded-xl 
                     hover:bg-gray-50 transition-all duration-200 group/section
-                    ${isCollapsed ? 'justify-center' : ''}
+                    ${shouldShowCollapsed ? 'justify-center' : ''}
                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
                   `}
                   aria-expanded={expandedSections.includes(section.id)}
@@ -367,17 +370,17 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                 >
                   <div className="flex items-center">
                     <section.icon
-                      className={`h-5 w-5 text-gray-600 group-hover/section:text-blue-600 transition-colors duration-200 ${isCollapsed ? '' : 'mr-3'
+                      className={`h-5 w-5 text-gray-600 group-hover/section:text-blue-600 transition-colors duration-200 ${shouldShowCollapsed ? '' : 'mr-3'
                         }`}
                       aria-hidden="true"
                     />
-                    {!isCollapsed && (
+                    {!shouldShowCollapsed && (
                       <span className="text-sm font-medium text-gray-700 group-hover/section:text-gray-900">
                         {section.label}
                       </span>
                     )}
                   </div>
-                  {!isCollapsed && (
+                  {!shouldShowCollapsed && (
                     <ChevronDown
                       className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${expandedSections.includes(section.id) ? 'rotate-180' : ''
                         }`}
@@ -391,10 +394,10 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                   id={`section-${section.id}`}
                   className={`
                     overflow-hidden transition-all duration-300 ease-in-out
-                    ${(expandedSections.includes(section.id) || isCollapsed) ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}
+                    ${(expandedSections.includes(section.id) || shouldShowCollapsed) ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}
                   `}
                 >
-                  <div className={`space-y-1 ${isCollapsed ? 'mt-2' : 'mt-1 ml-4'}`}>
+                  <div className={`space-y-1 ${shouldShowCollapsed ? 'mt-2' : 'mt-1 ml-4'}`}>
                     {section.items.map((item) => (
                       <button
                         key={item.id}
@@ -409,20 +412,20 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                             ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-sm'
                             : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                           }
-                          ${isCollapsed ? 'justify-center' : ''}
+                          ${shouldShowCollapsed ? 'justify-center' : ''}
                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
                         `}
-                        title={isCollapsed ? item.label : undefined}
+                        title={shouldShowCollapsed ? item.label : undefined}
                         aria-current={activeItem === item.id ? 'page' : undefined}
                       >
                         <div className="flex items-center min-w-0 flex-1">
                           <item.icon
                             className={`h-4 w-4 flex-shrink-0 ${activeItem === item.id ? 'text-blue-600' : 'text-gray-500'
-                              } group-hover/item:scale-110 transition-all duration-200 ${isCollapsed ? '' : 'mr-3'
+                              } group-hover/item:scale-110 transition-all duration-200 ${shouldShowCollapsed ? '' : 'mr-3'
                               }`}
                             aria-hidden="true"
                           />
-                          {!isCollapsed && (
+                          {!shouldShowCollapsed && (
                             <div className="min-w-0 flex-1">
                               <div className="text-sm font-medium truncate">{item.label}</div>
                               {item.description && (
@@ -433,7 +436,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                         </div>
 
                         {/* Badge */}
-                        {!isCollapsed && item.badge && (
+                        {!shouldShowCollapsed && item.badge && (
                           <div className="flex-shrink-0 ml-2">
                             <span className={`
                               text-xs font-medium px-2 py-1 rounded-full transition-all duration-200
@@ -453,8 +456,8 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
         </nav>
 
         {/* Footer Section */}
-        <footer className={`p-4 border-t border-gray-200 ${isCollapsed ? 'px-2' : 'px-4'}`}>
-          {!isCollapsed ? (
+        <footer className={`p-4 border-t border-gray-200 ${shouldShowCollapsed ? 'px-2' : 'px-4'}`}>
+          {!shouldShowCollapsed ? (
             <div className="space-y-2">
               <button
                 className="w-full flex items-center p-3 text-left rounded-xl hover:bg-gray-50 transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-blue-500"

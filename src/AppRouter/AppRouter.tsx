@@ -12,6 +12,8 @@ import AllTenants from "@/modules/tenants/pages/AllTenants";
 
 import ProtectedRoute from "./ProtectedRoute";
 
+import FinancialOverview from "@/modules/finance/pages/Finance";
+
 import { Toaster } from "sonner";
 
 const AppRoute = () => {
@@ -24,6 +26,7 @@ const AppRoute = () => {
                     <Route path="/dashboard/property" element={<AllProperty />} />
                     <Route path="/dashboard/properties/vacant" element={<VacantUnits />} />
                     <Route path="/dashboard/properties/tenants" element={<AllTenants />} />
+                    <Route path="/financial/income" element={<FinancialOverview />} />
                 </Route>
             </Routes>
             <Toaster />
