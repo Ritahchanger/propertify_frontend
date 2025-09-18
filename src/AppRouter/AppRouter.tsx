@@ -16,6 +16,8 @@ import FinancialOverview from "@/modules/finance/pages/Finance";
 
 import { Toaster } from "sonner";
 
+import UserManagementDashboard from "@/modules/user/pages/User";
+
 const AppRoute = () => {
     return (
         <div>
@@ -27,9 +29,10 @@ const AppRoute = () => {
                     <Route path="/dashboard/properties/vacant" element={<VacantUnits />} />
                     <Route path="/dashboard/properties/tenants" element={<AllTenants />} />
                     <Route path="/financial/income" element={<FinancialOverview />} />
+                    <Route path="/dashboard/user/management" element={<UserManagementDashboard />} />
                 </Route>
             </Routes>
-            <Toaster />
+            <Toaster position="top-right" richColors />
         </div>
     );
 };

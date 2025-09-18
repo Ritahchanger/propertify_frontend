@@ -11,19 +11,13 @@ import {
     TrendingUp,
     Home
 } from 'lucide-react';
-
 import { useNavigate } from 'react-router-dom';
 import Welcome from './Welcome';
-
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '@/store/store';
 import { loginUser } from '../auth-slice/auth.slice';
 
-interface FormData {
-    email: string;
-    password: string;
-    rememberMe: boolean;
-}
+import { toast } from 'sonner';
 
 const Login: React.FC = () => {
     const navigate = useNavigate();
@@ -48,7 +42,7 @@ const Login: React.FC = () => {
         setFormError(null);
 
         if (!email || !password) {
-            setFormError("Please fill in all fields");
+            toast.error("Please fill in all fields");
             return;
         }
 
@@ -56,7 +50,7 @@ const Login: React.FC = () => {
             await dispatch(loginUser({ email, password })).unwrap();
             // The useEffect hook will handle navigation when isAuthenticated becomes true
         } catch (err: any) {
-            setFormError(err || "Login failed");
+            toast.error(err || "Login failed");
         }
     };
 
@@ -90,13 +84,6 @@ const Login: React.FC = () => {
                         <h2 className="text-3xl font-bold text-gray-900 mb-2 text-center">Welcome Back</h2>
                         <p className="text-gray-600 text-center">Sign in to access your property management dashboard</p>
                     </div>
-
-                    {/* Error Message */}
-                    {(error || formError) && (
-                        <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-lg text-sm">
-                            {error || formError}
-                        </div>
-                    )}
 
                     {/* Login Form */}
                     <form onSubmit={handleSubmit} className="bg-white rounded-sm shadow-xl p-8 border border-gray-100">

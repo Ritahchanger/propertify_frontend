@@ -157,4 +157,22 @@ const taxPayments = [
     { month: 'Jun', vat: 0, income: 450000, withholding: 0, property: 160000 }
 ];
 
-export { financialData, rentCollection, properties, expenses, taxDocuments, bankAccounts, incomeVsExpensesData, expenseDistribution, rentCollectionTrend, taxPayments }
+const paymentsSample = [
+    { property: 'Kilimani Heights', unit: 'A101', tenant: 'John Mwangi', amount: 50000, status: 'paid', paymentDate: '2024-09-02', dueDate: '2024-09-01', daysOverdue: 0 },
+    { property: 'Kilimani Heights', unit: 'A102', tenant: 'Sarah Wanjiku', amount: 50000, status: 'paid', paymentDate: '2024-09-01', dueDate: '2024-09-01', daysOverdue: 0 },
+    { property: 'Kilimani Heights', unit: 'A103', tenant: 'Peter Kamau', amount: 50000, status: 'pending', paymentDate: null, dueDate: '2024-09-01', daysOverdue: 16 },
+    { property: 'Kilimani Heights', unit: 'A104', tenant: 'Mary Njeri', amount: 50000, status: 'overdue', paymentDate: null, dueDate: '2024-09-01', daysOverdue: 16 },
+    { property: 'Westlands Plaza', unit: 'B201', tenant: 'James Ochieng', amount: 65000, status: 'paid', paymentDate: '2024-09-03', dueDate: '2024-09-01', daysOverdue: 0 },
+    { property: 'Westlands Plaza', unit: 'B202', tenant: 'Grace Akinyi', amount: 65000, status: 'paid', paymentDate: '2024-08-31', dueDate: '2024-09-01', daysOverdue: 0 },
+    { property: 'Westlands Plaza', unit: 'B203', tenant: 'David Kipchoge', amount: 65000, status: 'pending', paymentDate: null, dueDate: '2024-09-01', daysOverdue: 16 },
+    { property: 'Karen Gardens', unit: 'C301', tenant: 'Susan Mutua', amount: 80000, status: 'paid', paymentDate: '2024-09-01', dueDate: '2024-09-01', daysOverdue: 0 },
+    { property: 'Karen Gardens', unit: 'C302', tenant: 'Robert Kimani', amount: 80000, status: 'paid', paymentDate: '2024-09-02', dueDate: '2024-09-01', daysOverdue: 0 },
+    { property: 'Karen Gardens', unit: 'C303', tenant: 'Ann Wambui', amount: 80000, status: 'pending', paymentDate: null, dueDate: '2024-09-01', daysOverdue: 16 },
+    { property: 'Kilimani Heights', unit: 'A105', tenant: 'Joseph Otieno', amount: 50000, status: 'paid', paymentDate: '2024-09-05', dueDate: '2024-09-01', daysOverdue: 0 },
+    { property: 'Kilimani Heights', unit: 'A106', tenant: 'Lucy Chebet', amount: 50000, status: 'paid', paymentDate: '2024-09-01', dueDate: '2024-09-01', daysOverdue: 0 },
+    { property: 'Westlands Plaza', unit: 'B204', tenant: 'Michael Wekesa', amount: 65000, status: 'paid', paymentDate: '2024-09-04', dueDate: '2024-09-01', daysOverdue: 0 },
+    { property: 'Karen Gardens', unit: 'C304', tenant: 'Jennifer Maina', amount: 80000, status: 'overdue', paymentDate: null, dueDate: '2024-09-01', daysOverdue: 16 },
+    { property: 'Kilimani Heights', unit: 'A107', tenant: 'Francis Ndung\'u', amount: 50000, status: 'paid', paymentDate: '2024-09-03', dueDate: '2024-09-01', daysOverdue: 0 }
+]
+
+export { financialData, rentCollection, properties, expenses, taxDocuments, bankAccounts, incomeVsExpensesData, expenseDistribution, rentCollectionTrend, taxPayments, paymentsSample }

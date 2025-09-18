@@ -106,14 +106,24 @@ const navigationItems = [
         description: 'Overview of your property portfolio'
     },
     {
+        id: 'users',
+        label: 'Users',
+        icon: Users,
+        href: '/dashboard/user/management',
+        roles: ['owner'],
+        badge: null,
+        dropdown: null,
+        description: 'Overview of your property portfolio'
+    },
+    {
         id: 'properties',
         label: 'Properties',
         icon: Building2,
-        href: '/properties',
+        href: '/dashboard/property',
         roles: ['owner'],
         badge: null,
         dropdown: [
-            { label: 'All Properties', icon: Building2, href: '/properties/all', badge: 12, description: 'View all your properties' },
+            { label: 'All Properties', icon: Building2, href: '/dashboard/property', badge: 12, description: 'View all your properties' },
             { label: 'Vacant Units', icon: Home, href: '/properties/vacant', badge: 3, description: 'Available rental units' },
             { label: 'Occupied Units', icon: Users, href: '/properties/occupied', badge: 45, description: 'Currently rented units' },
             { label: 'Property Performance', icon: TrendingUp, href: '/properties/analytics', badge: null, description: 'Analytics and insights' },
