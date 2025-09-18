@@ -12,14 +12,13 @@ import {
 
 // Import sidebar data
 import { sidebarSections } from './sidebarmenu';
-import { quickActions, portfolioStats } from './data';
+import { portfolioStats } from './data';
 
 // Redux imports
 import type { RootState, AppDispatch } from '@/store/store';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 
-import { openAddPropertyModal } from '@/modules/property/features/AddPropertyModalSlice';
 
 import {
   closeMobile,
@@ -54,8 +53,10 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
   // Local state
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [hoveredSection, setHoveredSection] = useState<string | null>(null);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Redux state
   const dispatch = useDispatch<AppDispatch>();
@@ -77,6 +78,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
       setIsMobile(isMobileView);
 
       // Clear hover state on resize
+      setHoveredSection(null);
       setHoveredItem(null);
 
       // Auto-close mobile menu on desktop
@@ -94,9 +96,17 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
   // Clear hover state when mobile menu closes
   useEffect(() => {
     if (!mobileOpen) {
+      setHoveredSection(null);
       setHoveredItem(null);
     }
-  }, [mobileOpen]);
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (hoverTimeout) {
+        clearTimeout(hoverTimeout);
+      }
+    };
+  }, [mobileOpen, hoverTimeout]);
 
   // Memoized filtered sections for performance
   const filteredSections = useMemo(() => {
@@ -145,9 +155,70 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
     }
   }, [dispatch, isMobile, mobileOpen]);
 
-  // Fixed hover handlers - only show tooltip when collapsed on desktop
-  const handleMouseEnter = useCallback((itemId: string, event: React.MouseEvent) => {
-    // Only show tooltip when sidebar is collapsed on desktop
+  // Section hover handlers for collapsed view
+  const handleSectionMouseEnter = useCallback((sectionId: string, event: React.MouseEvent) => {
+    if (!isMobile && isCollapsed) {
+      // Clear any existing timeout
+      if (hoverTimeout) {
+        clearTimeout(hoverTimeout);
+        setHoverTimeout(null);
+      }
+
+      const rect = event.currentTarget.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const tooltipHeight = 300; // Approximate tooltip height
+      const navbarHeight = 65; // Height of the navbar
+
+      // Calculate y position to keep tooltip in viewport and below navbar
+      let yPosition = rect.top + (rect.height / 2);
+
+      // If tooltip would go above navbar, position it below the navbar
+      if (yPosition - (tooltipHeight / 2) < navbarHeight) {
+        yPosition = navbarHeight + (tooltipHeight / 2) + 10;
+      }
+
+      // If tooltip would go below viewport, move it up
+      if (yPosition + (tooltipHeight / 2) > viewportHeight) {
+        yPosition = viewportHeight - (tooltipHeight / 2) - 10;
+      }
+
+      setHoverPosition({
+        x: rect.right + 2, // Very small gap to prevent flickering
+        y: yPosition
+      });
+      setHoveredSection(sectionId);
+    }
+  }, [isMobile, isCollapsed, hoverTimeout]);
+
+  const handleSectionMouseLeave = useCallback((e: React.MouseEvent) => {
+    if (!isMobile && isCollapsed) {
+      // Clear any existing timeout
+      if (hoverTimeout) {
+        clearTimeout(hoverTimeout);
+      }
+
+      // Set a longer delay to allow moving to tooltip
+      const timeout = setTimeout(() => {
+        setHoveredSection(null);
+      }, 300);
+      setHoverTimeout(timeout);
+    }
+  }, [isMobile, isCollapsed, hoverTimeout]);
+
+  // Tooltip hover handlers to keep it open
+  const handleTooltipMouseEnter = useCallback(() => {
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      setHoverTimeout(null);
+    }
+  }, [hoverTimeout]);
+
+  const handleTooltipMouseLeave = useCallback(() => {
+    setHoveredSection(null);
+  }, []);
+
+  // Item hover handlers for expanded view
+  const handleItemMouseEnter = useCallback((itemId: string, event: React.MouseEvent) => {
     if (!isMobile && isCollapsed) {
       const rect = event.currentTarget.getBoundingClientRect();
       setHoverPosition({
@@ -158,8 +229,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
     }
   }, [isMobile, isCollapsed]);
 
-  const handleMouseLeave = useCallback(() => {
-    // Only clear tooltip when sidebar is collapsed on desktop
+  const handleItemMouseLeave = useCallback(() => {
     if (!isMobile && isCollapsed) {
       setHoveredItem(null);
     }
@@ -168,6 +238,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
   // Remove touch handlers to prevent mobile issues
   const handleTouchStart = useCallback(() => {
     // Clear any existing hover state on touch
+    setHoveredSection(null);
     setHoveredItem(null);
   }, []);
 
@@ -184,6 +255,12 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
     monthlyRevenue: portfolioStats?.monthlyRevenue || 0,
     maintenanceRequests: portfolioStats?.maintenanceRequests || 0
   }), []);
+
+  // Find hovered section data for tooltip
+  const hoveredSectionData = useMemo(() => {
+    if (!hoveredSection) return null;
+    return filteredSections.find(section => section.id === hoveredSection);
+  }, [hoveredSection, filteredSections]);
 
   // Find hovered item data for tooltip
   const hoveredItemData = useMemo(() => {
@@ -211,8 +288,51 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
         />
       )}
 
-      {/* Hover Tooltip - Only show when collapsed on desktop */}
-      {!isMobile && isCollapsed && hoveredItem && hoveredItemData && (
+      {/* Section Tooltip - Only show when collapsed on desktop */}
+      {!isMobile && isCollapsed && hoveredSection && hoveredSectionData && (
+        <div
+          className="fixed z-[60] bg-gray-900 text-white text-sm rounded-lg shadow-2xl border border-gray-700 px-4 py-3 max-w-xs transform -translate-y-1/2 max-h-80 overflow-y-auto"
+          style={{
+            left: `${hoverPosition.x}px`,
+            top: `${hoverPosition.y}px`,
+          }}
+          onMouseEnter={handleTooltipMouseEnter}
+          onMouseLeave={handleTooltipMouseLeave}
+        >
+          <div className="font-medium text-white mb-2">{hoveredSectionData.label}</div>
+          <div className="space-y-2">
+            {hoveredSectionData.items.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  handleNavigate(item.href);
+                  handleItemClick(item.id);
+                  setHoveredSection(null); // Close tooltip after click
+                }}
+                className="w-full text-left text-xs text-gray-300 py-2 px-2 rounded border-b border-gray-700 last:border-b-0 hover:bg-gray-800 transition-colors cursor-pointer"
+              >
+                <div className="font-medium flex items-center">
+                  <item.icon className="h-3 w-3 mr-2 flex-shrink-0" />
+                  {item.label}
+                </div>
+                {item.description && (
+                  <div className="text-gray-400 mt-0.5">{item.description}</div>
+                )}
+                {item.badge && (
+                  <div className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full mt-1 inline-block">
+                    {item.badge}
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+          {/* Tooltip arrow */}
+          <div className="absolute right-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-[6px] border-b-[6px] border-r-[6px] border-t-transparent border-b-transparent border-r-gray-900"></div>
+        </div>
+      )}
+
+      {/* Item Tooltip - Only show when expanded and hovering individual items */}
+      {!isMobile && !isCollapsed && hoveredItem && hoveredItemData && (
         <div
           className="fixed z-[60] bg-gray-900 text-white text-sm rounded-lg shadow-2xl border border-gray-700 px-4 py-3 max-w-xs pointer-events-none transform -translate-y-1/2"
           style={{
@@ -296,37 +416,6 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
           </section>
         )}
 
-        {/* Quick Actions */}
-        {shouldShowExpanded && Array.isArray(quickActions) && quickActions.length > 0 && (
-          <section className="p-4 border-b border-gray-200" aria-labelledby="quick-actions-title">
-            <h3 id="quick-actions-title" className="text-sm font-semibold text-gray-700 mb-3">Quick Actions</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {quickActions.map((action) => (
-                <button
-                  key={action.id}
-                  className={`
-                    flex items-center justify-center p-3 rounded-xl text-white 
-                    transition-all duration-200 group hover:shadow-lg hover:scale-105 active:scale-95
-                    ${action.color || 'bg-blue-500 hover:bg-blue-600'}
-                  `}
-                  aria-label={`Quick action: ${action.label}`}
-                  onClick={() => {
-                    if (action.id === "add-property") {
-                      dispatch(openAddPropertyModal())
-                    } else {
-                      handleNavigate(action.href)
-                    }
-                  }}
-                  onTouchStart={handleTouchStart}
-                >
-                  <action.icon className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform duration-200" aria-hidden="true" />
-                  <span className="text-xs font-medium">{action.label}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
         {/* Search Bar */}
         {shouldShowExpanded && (
           <section className="p-4 border-b border-gray-200" aria-labelledby="search-title">
@@ -356,8 +445,8 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                 {/* Section Header */}
                 <button
                   onClick={() => handleSectionToggle(section.id)}
-                  onMouseEnter={(e) => handleMouseEnter(`section-${section.id}`, e)}
-                  onMouseLeave={handleMouseLeave}
+                  onMouseEnter={(e) => shouldShowCollapsed ? handleSectionMouseEnter(section.id, e) : undefined}
+                  onMouseLeave={shouldShowCollapsed ? handleSectionMouseLeave : undefined}
                   onTouchStart={handleTouchStart}
                   className={`
                     w-full flex items-center justify-between p-3 text-left rounded-xl 
@@ -367,6 +456,7 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                   `}
                   aria-expanded={expandedSections.includes(section.id)}
                   aria-controls={`section-${section.id}`}
+                  title={shouldShowCollapsed ? section.label : undefined}
                 >
                   <div className="flex items-center">
                     <section.icon
@@ -389,67 +479,64 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                   )}
                 </button>
 
-                {/* Section Items */}
-                <div
-                  id={`section-${section.id}`}
-                  className={`
-                    overflow-hidden transition-all duration-300 ease-in-out
-                    ${(expandedSections.includes(section.id) || shouldShowCollapsed) ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}
-                  `}
-                >
-                  <div className={`space-y-1 ${shouldShowCollapsed ? 'mt-2' : 'mt-1 ml-4'}`}>
-                    {section.items.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => { handleNavigate(item.href); handleItemClick(item.id); }}
-                        onMouseEnter={(e) => handleMouseEnter(item.id, e)}
-                        onMouseLeave={handleMouseLeave}
-                        onTouchStart={handleTouchStart}
-                        className={`
-                          w-full flex items-center justify-between p-3 rounded-xl text-left 
-                          transition-all duration-200 group/item relative
-                          ${activeItem === item.id
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-sm'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                          }
-                          ${shouldShowCollapsed ? 'justify-center' : ''}
-                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
-                        `}
-                        title={shouldShowCollapsed ? item.label : undefined}
-                        aria-current={activeItem === item.id ? 'page' : undefined}
-                      >
-                        <div className="flex items-center min-w-0 flex-1">
-                          <item.icon
-                            className={`h-4 w-4 flex-shrink-0 ${activeItem === item.id ? 'text-blue-600' : 'text-gray-500'
-                              } group-hover/item:scale-110 transition-all duration-200 ${shouldShowCollapsed ? '' : 'mr-3'
-                              }`}
-                            aria-hidden="true"
-                          />
-                          {!shouldShowCollapsed && (
+                {/* Section Items - Only show in expanded view */}
+                {!shouldShowCollapsed && (
+                  <div
+                    id={`section-${section.id}`}
+                    className={`
+                      overflow-hidden transition-all duration-300 ease-in-out
+                      ${expandedSections.includes(section.id) ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}
+                    `}
+                  >
+                    <div className="space-y-1 mt-1 ml-4">
+                      {section.items.map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => { handleNavigate(item.href); handleItemClick(item.id); }}
+                          onMouseEnter={(e) => handleItemMouseEnter(item.id, e)}
+                          onMouseLeave={handleItemMouseLeave}
+                          onTouchStart={handleTouchStart}
+                          className={`
+                            w-full flex items-center justify-between p-3 rounded-xl text-left 
+                            transition-all duration-200 group/item relative
+                            ${activeItem === item.id
+                              ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-sm'
+                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                            }
+                            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
+                          `}
+                          aria-current={activeItem === item.id ? 'page' : undefined}
+                        >
+                          <div className="flex items-center min-w-0 flex-1">
+                            <item.icon
+                              className={`h-4 w-4 flex-shrink-0 mr-3 ${activeItem === item.id ? 'text-blue-600' : 'text-gray-500'
+                                } group-hover/item:scale-110 transition-all duration-200`}
+                              aria-hidden="true"
+                            />
                             <div className="min-w-0 flex-1">
                               <div className="text-sm font-medium truncate">{item.label}</div>
                               {item.description && (
                                 <div className="text-xs text-gray-500 mt-0.5 truncate">{item.description}</div>
                               )}
                             </div>
-                          )}
-                        </div>
-
-                        {/* Badge */}
-                        {!shouldShowCollapsed && item.badge && (
-                          <div className="flex-shrink-0 ml-2">
-                            <span className={`
-                              text-xs font-medium px-2 py-1 rounded-full transition-all duration-200
-                              ${getPriorityBadgeColor(item.priority)}
-                            `}>
-                              {item.badge}
-                            </span>
                           </div>
-                        )}
-                      </button>
-                    ))}
+
+                          {/* Badge */}
+                          {item.badge && (
+                            <div className="flex-shrink-0 ml-2">
+                              <span className={`
+                                text-xs font-medium px-2 py-1 rounded-full transition-all duration-200
+                                ${getPriorityBadgeColor(item.priority)}
+                              `}>
+                                {item.badge}
+                              </span>
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             ))}
           </div>
@@ -461,8 +548,8 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
             <div className="space-y-2">
               <button
                 className="w-full flex items-center p-3 text-left rounded-xl hover:bg-gray-50 transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onMouseEnter={(e) => handleMouseEnter('help-support', e)}
-                onMouseLeave={handleMouseLeave}
+                onMouseEnter={(e) => handleItemMouseEnter('help-support', e)}
+                onMouseLeave={handleItemMouseLeave}
                 onTouchStart={handleTouchStart}
               >
                 <HelpCircle className="h-4 w-4 text-gray-500 mr-3 group-hover:text-blue-600 transition-colors duration-200" aria-hidden="true" />
@@ -473,8 +560,8 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
               </button>
               <button
                 className="w-full flex items-center p-3 text-left rounded-xl hover:bg-gray-50 transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onMouseEnter={(e) => handleMouseEnter('settings', e)}
-                onMouseLeave={handleMouseLeave}
+                onMouseEnter={(e) => handleItemMouseEnter('settings', e)}
+                onMouseLeave={handleItemMouseLeave}
                 onTouchStart={handleTouchStart}
               >
                 <Settings className="h-4 w-4 text-gray-500 mr-3 group-hover:text-blue-600 transition-colors duration-200" aria-hidden="true" />
@@ -490,8 +577,8 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                 className="w-full p-3 text-gray-500 hover:text-blue-600 hover:bg-gray-50 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 title="Help & Support"
                 aria-label="Help & Support"
-                onMouseEnter={(e) => handleMouseEnter('help-support', e)}
-                onMouseLeave={handleMouseLeave}
+                onMouseEnter={(e) => handleItemMouseEnter('help-support', e)}
+                onMouseLeave={handleItemMouseLeave}
                 onTouchStart={handleTouchStart}
               >
                 <HelpCircle className="h-4 w-4 mx-auto" />
@@ -500,8 +587,8 @@ const PropertifySidebar: React.FC<PropertifySidebarProps> = ({
                 className="w-full p-3 text-gray-500 hover:text-blue-600 hover:bg-gray-50 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 title="Settings"
                 aria-label="Settings"
-                onMouseEnter={(e) => handleMouseEnter('settings', e)}
-                onMouseLeave={handleMouseLeave}
+                onMouseEnter={(e) => handleItemMouseEnter('settings', e)}
+                onMouseLeave={handleItemMouseLeave}
                 onTouchStart={handleTouchStart}
               >
                 <Settings className="h-4 w-4 mx-auto" />

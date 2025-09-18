@@ -135,11 +135,11 @@ const navigationItems = [
         id: 'tenants',
         label: 'Tenants',
         icon: Users,
-        href: '/tenants',
+        href: '/dashboard/properties/tenants',
         roles: ['owner'],
         badge: 2,
         dropdown: [
-            { label: 'All Tenants', icon: Users, href: '/tenants/all', badge: 45, description: 'Manage current tenants' },
+            { label: 'All Tenants', icon: Users, href: '/dashboard/properties/tenants', badge: 45, description: 'Manage current tenants' },
             { label: 'Tenant Applications', icon: FileText, href: '/tenants/applications', badge: 2, description: 'Review new applications' },
             { label: 'Lease Management', icon: FileText, href: '/tenants/leases', badge: null, description: 'Lease agreements and renewals' },
             { label: 'Lease Renewals', icon: Calendar, href: '/tenants/renewals', badge: 5, description: 'Upcoming lease renewals' },

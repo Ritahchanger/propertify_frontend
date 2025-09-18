@@ -77,7 +77,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <div className="flex">
                 <PropertifySidebar />
                 <div
-                    className={`transition-all duration-300 p-2 pt-0 overflow-y-auto flex-1 ${getContentWidthClass()}`}
+                    className={`transition-all duration-300 p-2 px-0 pt-0 overflow-y-auto flex-1 ${getContentWidthClass()}`}
                     style={{ minHeight: 'calc(100vh - 64px)' }}
                 >
                     {children}
