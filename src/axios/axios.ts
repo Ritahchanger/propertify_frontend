@@ -18,7 +18,7 @@ api.interceptors.response.use(
         if (error.response) {
             console.error("API error:", error.response.data);
             if (error.response.status === 401 && typeof window !== "undefined") {
-                window.location.href = "/login";
+                window.location.href = "/";
             }
         } else if (error.request) {
             console.error("No response from server:", error.request);
