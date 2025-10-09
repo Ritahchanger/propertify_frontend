@@ -8,6 +8,7 @@ import propertyModalSlice from "@/modules/property/features/AddPropertyModalSlic
 
 
 import authAttemptsSlice from "@/modules/analytics/features/authAttemptsSlice";
+import estatesSlice from "@/modules/property/features/EstatesSlice";
 
 export const store = configureStore({
 
@@ -19,8 +20,12 @@ export const store = configureStore({
 
         openPropertyModal: propertyModalSlice.reducer,
 
-        authAttempts: authAttemptsSlice.reducer
+        authAttempts: authAttemptsSlice.reducer,
 
+
+        estate:estatesSlice.reducer
+
+    
     }
 
 })
