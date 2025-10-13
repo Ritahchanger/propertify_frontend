@@ -6,58 +6,22 @@ import authSlice from "@/modules/authentication/user/auth-slice/auth.slice";
 
 import propertyModalSlice from "@/modules/property/features/AddPropertyModalSlice";
 
-
 import authAttemptsSlice from "@/modules/analytics/features/authAttemptsSlice";
-import estatesSlice from "@/modules/property/features/EstatesSlice";
+import { estatesSlice } from "@/modules/property/features/EstatesSlice";
 
 export const store = configureStore({
+  reducer: {
+    sidebar: sidebarSlice.reducer,
 
-    reducer: {
+    auth: authSlice.reducer,
 
-        sidebar: sidebarSlice.reducer,
+    openPropertyModal: propertyModalSlice.reducer,
 
-        auth: authSlice.reducer,
+    authAttempts: authAttemptsSlice.reducer,
 
-        openPropertyModal: propertyModalSlice.reducer,
-
-        authAttempts: authAttemptsSlice.reducer,
-
-
-        estate:estatesSlice.reducer
-
-    
-    }
-
-})
+    estates: estatesSlice.reducer,
+  },
+});
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

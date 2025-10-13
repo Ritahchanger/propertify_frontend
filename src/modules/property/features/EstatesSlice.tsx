@@ -4,7 +4,27 @@ import {
   type PayloadAction,
 } from "@reduxjs/toolkit";
 import api from "@/axios/axios";
-import { selectUserId } from "@/modules/authentication/user/auth-slice/auth.slice";
+
+import type { RootState } from "@/store/store";
+
+// Types
+interface Owner {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  role: string;
+}
+
+interface Unit {
+  id: string;
+  unitNumber: string;
+  status: string;
+  monthlyRent: string;
+  bedrooms: number;
+  bathrooms: number;
+}
 
 interface Estate {
   id: string;
@@ -16,22 +36,8 @@ interface Estate {
   status: "active" | "maintenance" | "inactive";
   created_at: string;
   updated_at: string;
-  owner: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    role: string;
-  };
-  units: Array<{
-    id: string;
-    unitNumber: string;
-    status: string;
-    monthlyRent: string;
-    bedrooms: number;
-    bathrooms: number;
-  }>;
+  owner: Owner;
+  units: Unit[];
 }
 
 interface EstatesResponse {
@@ -55,6 +61,7 @@ interface EstatesState {
   hasPrevious: boolean;
 }
 
+// Initial state
 const initialState: EstatesState = {
   estates: [],
   loading: false,
@@ -66,25 +73,20 @@ const initialState: EstatesState = {
   hasPrevious: false,
 };
 
-// Async thunk to fetch owner's estates
-export const fetchOwnerEstates = createAsyncThunk(
-  "estates/fetchOwnerEstates",
-  async (
-    params: { page?: number; limit?: number } = {},
-    { getState, rejectWithValue }
-  ) => {
+// Async thunk for fetching user estates
+export const fetchUserEstates = createAsyncThunk<
+  EstatesResponse,
+  { userId: string; page?: number; limit?: number },
+  { rejectValue: string }
+>(
+  "estates/fetchUserEstates",
+  async ({ userId, page = 1, limit = 10 }, { rejectWithValue }) => {
     try {
-      const state = getState() as any;
-      const ownerId = selectUserId(state);
+      const response = await api.get(`estates/owner/${userId}`, {
+        params: { page, limit },
+      });
 
-      if (!ownerId) {
-        return rejectWithValue("User not authenticated");
-      }
-
-      const { page = 1, limit = 10 } = params;
-      const response = await api.get<EstatesResponse>(
-        `/estates/owner/${ownerId}/paginated?page=${page}&limit=${limit}`
-      );
+      console.log("Fetched estates:", response.data);
 
       return response.data;
     } catch (error: any) {
@@ -95,189 +97,95 @@ export const fetchOwnerEstates = createAsyncThunk(
   }
 );
 
-// Async thunk to fetch all owner's estates (without pagination) - FIXED
-export const fetchAllOwnerEstates = createAsyncThunk(
-  "estates/fetchAllOwnerEstates",
-  async (_, { getState, rejectWithValue }) => {
-    try {
-      const state = getState() as any;
-      const ownerId = selectUserId(state);
-
-      if (!ownerId) {
-        return rejectWithValue("User not authenticated");
-      }
-
-      const response = await api.get<{
-        success: boolean;
-        estates: Estate[];
-        totalCount: number;
-        totalPages: number;
-        currentPage: number;
-        hasNext: boolean;
-        hasPrevious: boolean;
-      }>(`/estates/owner/${ownerId}`);
-
-      return response.data;
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch estates"
-      );
-    }
-  }
-);
-
-// Async thunk to fetch estates with statistics - FIXED
-export const fetchOwnerEstatesWithStats = createAsyncThunk(
-  "estates/fetchOwnerEstatesWithStats",
-  async (_, { getState, rejectWithValue }) => {
-    try {
-      const state = getState() as any;
-      const ownerId = selectUserId(state);
-
-      if (!ownerId) {
-        return rejectWithValue("User not authenticated");
-      }
-
-      const response = await api.get<{
-        success: boolean;
-        estates: Estate[];
-        totalCount: number;
-      }>(`/estates/owner/${ownerId}/stats`);
-
-      return response.data;
-    } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch estates with stats"
-      );
-    }
-  }
-);
-
-const estatesSlice = createSlice({
+// Estate slice
+export const estatesSlice = createSlice({
   name: "estates",
   initialState,
   reducers: {
     clearEstates: (state) => {
       state.estates = [];
-      state.error = null;
       state.totalCount = 0;
       state.totalPages = 0;
       state.currentPage = 1;
       state.hasNext = false;
       state.hasPrevious = false;
+      state.error = null;
+    },
+    updateEstateStatus: (
+      state,
+      action: PayloadAction<{ id: string; status: Estate["status"] }>
+    ) => {
+      const estate = state.estates.find(
+        (estate) => estate.id === action.payload.id
+      );
+      if (estate) {
+        estate.status = action.payload.status;
+        estate.updated_at = new Date().toISOString();
+      }
+    },
+    addEstate: (state, action: PayloadAction<Estate>) => {
+      state.estates.unshift(action.payload);
+      state.totalCount += 1;
+    },
+    removeEstate: (state, action: PayloadAction<string>) => {
+      state.estates = state.estates.filter(
+        (estate) => estate.id !== action.payload
+      );
+      state.totalCount = Math.max(0, state.totalCount - 1);
     },
     clearError: (state) => {
       state.error = null;
     },
-    setCurrentPage: (state, action: PayloadAction<number>) => {
-      state.currentPage = action.payload;
-    },
   },
   extraReducers: (builder) => {
     builder
-      // Fetch owner's estates (paginated)
-      .addCase(fetchOwnerEstates.pending, (state) => {
+      // Fetch user estates
+      .addCase(fetchUserEstates.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(
-        fetchOwnerEstates.fulfilled,
-        (state, action: PayloadAction<EstatesResponse>) => {
-          state.loading = false;
-          state.estates = action.payload.estates;
-          state.totalCount = action.payload.totalCount;
-          state.totalPages = action.payload.totalPages;
-          state.currentPage = action.payload.currentPage;
-          state.hasNext = action.payload.hasNext;
-          state.hasPrevious = action.payload.hasPrevious;
-          state.error = null;
-        }
-      )
-      .addCase(fetchOwnerEstates.rejected, (state, action) => {
+      .addCase(fetchUserEstates.fulfilled, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
-        state.estates = [];
-      })
-
-      // Fetch all owner's estates - FIXED
-      .addCase(fetchAllOwnerEstates.pending, (state) => {
-        state.loading = true;
+        state.estates = action.payload.estates;
+        state.totalCount = action.payload.totalCount;
+        state.totalPages = action.payload.totalPages;
+        state.currentPage = action.payload.currentPage;
+        state.hasNext = action.payload.hasNext;
+        state.hasPrevious = action.payload.hasPrevious;
         state.error = null;
       })
-      .addCase(
-        fetchAllOwnerEstates.fulfilled,
-        (
-          state,
-          action: PayloadAction<{
-            success: boolean;
-            estates: Estate[];
-            totalCount: number;
-            totalPages: number;
-            currentPage: number;
-            hasNext: boolean;
-            hasPrevious: boolean;
-          }>
-        ) => {
-          state.loading = false;
-          state.estates = action.payload.estates;
-          state.totalCount = action.payload.totalCount;
-          state.totalPages = action.payload.totalPages;
-          state.currentPage = action.payload.currentPage;
-          state.hasNext = action.payload.hasNext;
-          state.hasPrevious = action.payload.hasPrevious;
-          state.error = null;
-        }
-      )
-      .addCase(fetchAllOwnerEstates.rejected, (state, action) => {
+      .addCase(fetchUserEstates.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        state.error = action.payload || "Failed to fetch estates";
         state.estates = [];
-      })
-
-      // Fetch owner's estates with stats - FIXED
-      .addCase(fetchOwnerEstatesWithStats.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(
-        fetchOwnerEstatesWithStats.fulfilled,
-        (
-          state,
-          action: PayloadAction<{
-            success: boolean;
-            estates: Estate[];
-            totalCount: number;
-          }>
-        ) => {
-          state.loading = false;
-          state.estates = action.payload.estates;
-          state.totalCount = action.payload.totalCount;
-          state.totalPages = 1;
-          state.currentPage = 1;
-          state.hasNext = false;
-          state.hasPrevious = false;
-          state.error = null;
-        }
-      )
-      .addCase(fetchOwnerEstatesWithStats.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-        state.estates = [];
+        state.totalCount = 0;
+        state.totalPages = 0;
+        state.currentPage = 1;
+        state.hasNext = false;
+        state.hasPrevious = false;
       });
   },
 });
 
-export const { clearEstates, clearError, setCurrentPage } =
-  estatesSlice.actions;
+
+
+// Export actions
+export const {
+  clearEstates,
+  updateEstateStatus,
+  addEstate,
+  removeEstate,
+  clearError,
+} = estatesSlice.actions;
 
 // Selectors
-export const selectEstates = (state: { estates: EstatesState }) =>
-  state.estates.estates;
-export const selectEstatesLoading = (state: { estates: EstatesState }) =>
-  state.estates.loading;
-export const selectEstatesError = (state: { estates: EstatesState }) =>
-  state.estates.error;
-export const selectEstatesPagination = (state: { estates: EstatesState }) => ({
+
+
+
+export const selectEstates = (state: RootState) => state.estates.estates;
+export const selectEstatesLoading = (state: RootState) => state.estates.loading;
+export const selectEstatesError = (state: RootState) => state.estates.error;
+export const selectEstatesPagination = (state: RootState) => ({
   totalCount: state.estates.totalCount,
   totalPages: state.estates.totalPages,
   currentPage: state.estates.currentPage,
@@ -285,4 +193,65 @@ export const selectEstatesPagination = (state: { estates: EstatesState }) => ({
   hasPrevious: state.estates.hasPrevious,
 });
 
-export default estatesSlice;
+
+
+// Selector for estate by ID
+export const selectEstateById = (id: string) => (state: RootState) =>
+  state.estates.estates.find((estate) => estate.id === id);
+
+
+
+// Selector for estates statistics
+export const selectEstatesStats = (state: RootState) => {
+  const estates = state.estates.estates;
+  const totalProperties = estates.length;
+  const totalUnits = estates.reduce(
+    (sum, estate) => sum + estate.totalUnits,
+    0
+  );
+
+
+
+
+  // Calculate occupied units from units array
+  const totalOccupied = estates.reduce((sum, estate) => {
+    const occupiedUnits = estate.units.filter(
+      (unit) => unit.status === "occupied"
+    ).length;
+    return sum + occupiedUnits;
+  }, 0);
+
+
+
+
+  // Calculate total monthly revenue
+  const totalRevenue = estates.reduce((sum, estate) => {
+    const estateRevenue = estate.units
+      .filter((unit) => unit.status === "occupied")
+      .reduce((unitSum, unit) => unitSum + parseFloat(unit.monthlyRent), 0);
+    return sum + estateRevenue;
+  }, 0);
+
+
+
+
+
+
+  const totalMaintenanceRequests = estates.reduce((sum, estate) => {
+    return sum + (estate.status === "maintenance" ? 1 : 0);
+  }, 0);
+
+  const occupancyRate =
+    totalUnits > 0 ? Math.round((totalOccupied / totalUnits) * 100) : 0;
+
+  return {
+    totalProperties,
+    totalUnits,
+    totalOccupied,
+    totalRevenue,
+    totalMaintenanceRequests,
+    occupancyRate,
+  };
+};
+
+export default estatesSlice.reducer;
