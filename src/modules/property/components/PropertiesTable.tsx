@@ -52,7 +52,10 @@ import {
   
   // Types
   import type { PaginationInfo, Estate, Unit } from "@/shared";
+
   import { useState } from "react";
+
+  import { useNavigate } from "react-router-dom";
   
   interface PropertiesTableProps {
     estates: Estate[];
@@ -108,6 +111,8 @@ import {
       
       return { occupied, vacant, maintenance };
     };
+
+    const navigate = useNavigate();
   
     // Helper function to get unit status badges
     const getUnitStatusBadges = (estate: Estate) => {
@@ -454,7 +459,7 @@ import {
               )}
   
               {/* Units Table */}
-              <div className="border rounded-lg">
+              <div className="border rounded-sm border-neutral-300">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -467,7 +472,11 @@ import {
                   </TableHeader>
                   <TableBody>
                     {selectedEstate?.units.map((unit: Unit) => (
-                      <TableRow key={unit.id}>
+                      <TableRow key={unit.id} onClick={()=>{
+
+                      navigate(`/dashboard/property/${unit.id}`)
+
+                      }}>
                         <TableCell className="font-medium">
                           <div className="flex items-center space-x-2">
                             <Home className="h-4 w-4 text-gray-400" />
