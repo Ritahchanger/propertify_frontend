@@ -221,7 +221,13 @@ const PropertiesTable: React.FC<PropertiesTableProps> = ({
                   getUnitStatusCounts(estate);
 
                 return (
-                  <TableRow key={estate.id} className="hover:bg-gray-50">
+                  <TableRow
+                    key={estate.id}
+                    className="hover:bg-gray-50"
+                    onClick={() => {
+                      navigate(`/dashboard/estate/fdsnmjnsjfnwejnfjwenfw`);
+                    }}
+                  >
                     <TableCell className="font-medium">
                       <div className="flex items-center space-x-3">
                         <Building2 className="h-5 w-5 text-gray-400" />

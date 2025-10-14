@@ -28,7 +28,9 @@ import {
 } from "./data";
 
 import { useDispatch, useSelector } from "react-redux";
+
 import type { AppDispatch, RootState } from "@/store/store";
+
 import { toggleCollapse } from "../sidebar/SidebarSlice";
 
 import { logoutUser } from "@/modules/authentication/user/auth-slice/auth.slice";
@@ -132,10 +134,6 @@ const PropertifyNavbar: React.FC = () => {
     },
     []
   );
-
-  const handleSearchClear = useCallback(() => {
-    setSearchQuery("");
-  }, []);
 
   const handleQuickActionsToggle = useCallback(() => {
     setShowQuickActions(!showQuickActions);

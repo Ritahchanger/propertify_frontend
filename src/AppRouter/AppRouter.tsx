@@ -22,6 +22,8 @@ import Analytics from "@/modules/analytics/pages/Analytics";
 
 import UnitDetails from "@/modules/units/pages/UnitHistory";
 
+import EstateHistoryPage from "@/modules/property/pages/EstateHistory";
+
 const AppRoute = () => {
   return (
     <div>
@@ -49,6 +51,11 @@ const AppRoute = () => {
           <Route
             path="/dashboard/user/management"
             element={<UserManagementDashboard />}
+          />
+
+          <Route
+            path="/dashboard/estate/:estateId"
+            element={<EstateHistoryPage />}
           />
         </Route>
       </Routes>
