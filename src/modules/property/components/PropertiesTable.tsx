@@ -11,6 +11,7 @@ import {
   Bath,
   Bed,
   DollarSign,
+  History,
 } from "lucide-react";
 import {
   Card,
@@ -52,6 +53,7 @@ import type { PaginationInfo, Estate, Unit } from "@/shared";
 import { useState } from "react";
 
 import { useNavigate } from "react-router-dom";
+import AddUnitsModal from "./AddUnitsModal";
 
 interface PropertiesTableProps {
   estates: Estate[];
@@ -67,6 +69,7 @@ interface PropertiesTableProps {
   onEditEstate: (estateId: string) => void;
   onDeleteEstate: (estateId: string) => void;
   onViewUnits?: (estateId: string) => void;
+  onViewHistory?: (estateId: string) => void;
   onAddProperty?: () => void;
   getStatusBadge: (status: string) => any;
   getOccupancyRate: (estate: Estate) => number;
@@ -88,6 +91,7 @@ const PropertiesTable: React.FC<PropertiesTableProps> = ({
   onEditEstate,
   onDeleteEstate,
   onViewUnits,
+  onViewHistory,
   onAddProperty,
   getStatusBadge,
   getOccupancyRate,
@@ -96,6 +100,18 @@ const PropertiesTable: React.FC<PropertiesTableProps> = ({
 }) => {
   const [selectedEstate, setSelectedEstate] = useState<Estate | null>(null);
   const [showUnitsModal, setShowUnitsModal] = useState(false);
+  const [showAddUnitsModal, setShowAddUnitsModal] = useState(false);
+  const [newUnitData, setNewUnitData] = useState({
+    unitNumber: "",
+    bedrooms: 1,
+    bathrooms: 1,
+    monthlyRent: "",
+    depositAmount: "",
+    unitType: "Apartment",
+    floorArea: "",
+    status: "vacant",
+    description: "",
+  });
 
   const totalPages = Math.ceil(pagination.totalCount / itemsPerPage);
 
@@ -159,6 +175,23 @@ const PropertiesTable: React.FC<PropertiesTableProps> = ({
     }
   };
 
+  const handleAddUnitsClick = (estateId: string) => {
+    const estate = estates.find((e) => e.id === estateId);
+    if (estate) {
+      setSelectedEstate(estate);
+      setShowAddUnitsModal(true);
+    }
+  };
+
+  const handleViewHistory = (estateId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent row click event
+    if (onViewHistory) {
+      onViewHistory(estateId);
+    }
+    // You can also navigate directly if needed:
+    // navigate(`/dashboard/estate/${estateId}/history`);
+  };
+
   const getUnitStatusBadge = (status: string) => {
     switch (status) {
       case "occupied":
@@ -172,6 +205,11 @@ const PropertiesTable: React.FC<PropertiesTableProps> = ({
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  // Handle row click
+  const handleRowClick = (estateId: string) => {
+    navigate(`/dashboard/estate/${estateId}`);
   };
 
   if (loading && estates.length === 0) {
@@ -217,16 +255,13 @@ const PropertiesTable: React.FC<PropertiesTableProps> = ({
               {filteredEstates.map((estate) => {
                 const occupancyRate = getOccupancyRate(estate);
                 const totalRevenue = getTotalRevenue(estate);
-                const { occupied, vacant, maintenance } =
-                  getUnitStatusCounts(estate);
+                const { occupied } = getUnitStatusCounts(estate);
 
                 return (
                   <TableRow
                     key={estate.id}
-                    className="hover:bg-gray-50"
-                    onClick={() => {
-                      navigate(`/dashboard/estate/fdsnmjnsjfnwejnfjwenfw`);
-                    }}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleRowClick(estate.id)}
                   >
                     <TableCell className="font-medium">
                       <div className="flex items-center space-x-3">
@@ -304,41 +339,70 @@ const PropertiesTable: React.FC<PropertiesTableProps> = ({
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => onViewEstate(estate.id)}
+                      <div className="flex items-center justify-end gap-2">
+                        {/* History Button */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleViewHistory(estate.id, e)}
+                          title="View History"
+                          className="h-8 w-8 p-0"
+                        >
+                          <History className="h-4 w-4" />
+                        </Button>
+
+                        {/* More Actions Dropdown */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleViewUnits(estate.id)}
-                          >
-                            <DoorOpen className="h-4 w-4 mr-2" />
-                            View Units
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => onEditEstate(estate.id)}
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit Property
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => onDeleteEstate(estate.id)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete Property
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            <DropdownMenuItem
+                              onClick={() => onViewEstate(estate.id)}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleViewUnits(estate.id)}
+                            >
+                              <DoorOpen className="h-4 w-4 mr-2" />
+                              View Units
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => onEditEstate(estate.id)}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Property
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                              onClick={() => handleAddUnitsClick(estate.id)}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Units
+                            </DropdownMenuItem>
+
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => onDeleteEstate(estate.id)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Property
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -491,14 +555,33 @@ const PropertiesTable: React.FC<PropertiesTableProps> = ({
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   No Units Added
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 mb-4">
                   This property doesn't have any units added yet.
                 </p>
+                <Button
+                  onClick={() => {
+                    setShowUnitsModal(false);
+                    handleAddUnitsClick(selectedEstate.id);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Units
+                </Button>
               </div>
             )}
           </div>
         </DialogContent>
       </Dialog>
+      {/* Add Units Modal */}
+      <AddUnitsModal
+        open={showAddUnitsModal}
+        onOpenChange={setShowAddUnitsModal}
+        selectedEstate={selectedEstate}
+        newUnitData={newUnitData}
+        onNewUnitDataChange={setNewUnitData}
+        onCancel={() => setShowAddUnitsModal(false)}
+      />
     </>
   );
 };
