@@ -24,11 +24,18 @@ import UnitDetails from "@/modules/units/pages/UnitHistory";
 
 import EstateHistoryPage from "@/modules/property/pages/EstateHistory";
 
+import Signup from "@/modules/authentication/user/signup/Signup";
+
+import Applications from "@/modules/applications/pages/Applications";
+
 const AppRoute = () => {
   return (
     <div>
       <Routes>
         <Route path="/" element={<Login />} />
+
+        <Route path="/register" element={<Signup />} />
+
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
 
@@ -57,6 +64,8 @@ const AppRoute = () => {
             path="/dashboard/estate/:estateId"
             element={<EstateHistoryPage />}
           />
+
+          <Route path="/dashboard/applications" element={<Applications />} />
         </Route>
       </Routes>
       <Toaster position="top-right" richColors />

@@ -12,8 +12,14 @@ import { estatesSlice } from "@/modules/property/features/EstatesSlice";
 
 import unitsSlice from "@/modules/property/features/UnitSlice";
 
+
+import applicationsSlice from "@/modules/property/features/ApplicationsSlice";
+
+
 export const store = configureStore({
+
   reducer: {
+
     sidebar: sidebarSlice.reducer,
 
     auth: authSlice.reducer,
@@ -25,6 +31,8 @@ export const store = configureStore({
     estates: estatesSlice.reducer,
 
     units: unitsSlice.reducer,
+
+    applications:applicationsSlice.reducer
 
   },
 });

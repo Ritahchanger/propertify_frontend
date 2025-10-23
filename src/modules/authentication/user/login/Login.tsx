@@ -1,22 +1,10 @@
 import React, { useState, useEffect } from "react";
-import {
-  Building2,
-  Eye,
-  EyeOff,
-  Mail,
-  Lock,
-  ArrowRight,
-  Shield,
-  Users,
-  TrendingUp,
-  Home,
-} from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Building2, Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom"; // Added Link import
 import Welcome from "./Welcome";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store/store";
 import { loginUser } from "../auth-slice/auth.slice";
-
 import { toast } from "sonner";
 
 const Login: React.FC = () => {
@@ -39,31 +27,53 @@ const Login: React.FC = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  // Handle Redux error changes
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
+
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setFormError(null);
 
+    // Validation
     if (!email || !password) {
       toast.error("Please fill in all fields");
       return;
     }
 
+    if (!isValidEmail(email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
     try {
       await dispatch(loginUser({ email, password })).unwrap();
-      // The useEffect hook will handle navigation when isAuthenticated becomes true
+      toast.success("Login successful!");
     } catch (err: any) {
-      toast.error(err || "Login failed");
+      const errorMessage = err?.message || "Login failed. Please try again.";
+      toast.error(errorMessage);
     }
+  };
+
+  // Email validation helper
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Demo credentials helper (remove in production)
+  const fillDemoCredentials = () => {
+    setEmail("ritahchanger@gmail.com");
+    setPassword("StrongPass123!");
   };
 
   return (
     <div className="min-h-screen flex overflow-hidden">
-      {" "}
-      {/* Added overflow-hidden */}
       {/* Left Side - Welcome (Scrollable) */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white relative overflow-y-auto">
-        {" "}
-        {/* Changed to overflow-y-auto */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-20 w-40 h-40 rounded-full bg-white animate-pulse" />
           <div className="absolute top-60 right-32 w-32 h-32 rounded-full bg-white animate-pulse delay-100" />
@@ -72,12 +82,11 @@ const Login: React.FC = () => {
         </div>
         <Welcome />
       </div>
+
       {/* Right Side - Login Form (Fixed) */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-12 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 overflow-y-auto">
-        {" "}
-        {/* Added overflow-y-auto */}
         <div className="w-full max-w-md">
-          {/* Mobile Logo (visible only on mobile) */}
+          {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg mb-4">
               <Building2 className="h-8 w-8 text-white" />
@@ -85,13 +94,19 @@ const Login: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900">Propertify</h1>
           </div>
 
+          {/* Demo Credentials Hint (Remove in production) */}
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
+            <button
+              type="button"
+              onClick={fillDemoCredentials}
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors duration-200"
+            >
+              Click to fill demo credentials
+            </button>
+          </div>
+
           {/* Form Header */}
           <div className="mb-8">
-            <p>
-              {" "}
-              "email": "ritahchanger@gmail.com", "password": "StrongPass123!"
-            </p>
-
             <h2 className="text-3xl font-bold text-gray-900 mb-2 text-center">
               Welcome Back
             </h2>
@@ -103,7 +118,7 @@ const Login: React.FC = () => {
           {/* Login Form */}
           <form
             onSubmit={handleSubmit}
-            className="bg-white rounded-sm shadow-xl p-8 border border-gray-100"
+            className="bg-white rounded-lg shadow-xl p-8 border border-gray-100"
           >
             <div className="space-y-6">
               {/* Email Field */}
@@ -182,12 +197,12 @@ const Login: React.FC = () => {
                     Remember me for 30 days
                   </label>
                 </div>
-                <a
-                  href="#"
+                <Link
+                  to="/forgot-password"
                   className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"
                 >
                   Forgot password?
-                </a>
+                </Link>
               </div>
 
               {/* Submit Button */}
@@ -224,20 +239,24 @@ const Login: React.FC = () => {
               <div className="text-center">
                 <p className="text-gray-600">
                   Don't have an account?{" "}
-                  <a
-                    href="#"
+                  <Link
+                    to="/register"
                     className="text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200 hover:underline"
                   >
-                    Start your free 14-day trial
-                  </a>
+                    Sign Up
+                  </Link>
                 </p>
               </div>
             </div>
           </form>
 
           {/* Security Notice */}
-
-          {/* Trust Indicators */}
+          <div className="mt-6 text-center">
+            <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
+              <Lock className="h-4 w-4" />
+              <span>Your data is securely encrypted</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

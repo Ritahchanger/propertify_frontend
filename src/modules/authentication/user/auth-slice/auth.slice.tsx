@@ -15,12 +15,7 @@ export const registerUser = createAsyncThunk<
   { rejectValue: string }
 >("auth/registerUser", async (payload, thunkAPI) => {
   try {
-    const response = await api.post<AuthResponse>(
-      `accounts/register/`,
-      payload
-    );
-
-    // Save authentication state in localStorage
+    const response = await api.post<AuthResponse>(`auth/register`, payload);
     if (typeof window !== "undefined") {
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("user", JSON.stringify(response.data.user));
@@ -98,13 +93,10 @@ export const authSlice = createSlice({
         }
       }
     },
-    // New action to get userId
     getUserId: (state) => {
       if (state.user && "id" in state.user) {
         return state.user.id;
       }
-
-      // Fallback to localStorage if needed
       if (typeof window !== "undefined") {
         const user = localStorage.getItem("user");
         if (user) {
@@ -116,25 +108,27 @@ export const authSlice = createSlice({
       }
       return null;
     },
-    // Alternative action that returns the userId directly
     setUserIdFromStorage: (state) => {
       if (typeof window !== "undefined") {
         const user = localStorage.getItem("user");
         if (user) {
           const userData = JSON.parse(user);
           if (userData && userData.id) {
-            // If you want to store userId separately in state
-            // state.userId = userData.id;
             return userData.id;
           }
         }
       }
       return null;
     },
+    clearError: (state) => {
+      state.error = null;
+    },
+    resetLoading: (state) => {
+      state.loading = false;
+    },
   },
   extraReducers: (builder) => {
     builder
-      // Register
       .addCase(registerUser.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -146,14 +140,23 @@ export const authSlice = createSlice({
           state.user = action.payload.user;
           state.isAuthenticated = true;
           state.error = null;
+          if (typeof window !== "undefined") {
+            localStorage.setItem("user", JSON.stringify(action.payload.user));
+            localStorage.setItem("isAuthenticated", "true");
+          }
         }
       )
       .addCase(registerUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Registration failed";
-      })
+        state.isAuthenticated = false;
+        state.user = null;
 
-      // Login
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("isAuthenticated");
+          localStorage.removeItem("user");
+        }
+      })
       .addCase(loginUser.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -171,8 +174,6 @@ export const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload || "Login failed";
       })
-
-      // Logout
       .addCase(logoutUser.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -190,19 +191,24 @@ export const authSlice = createSlice({
   },
 });
 
-export const { loadUserFromStorage, getUserId, setUserIdFromStorage } =
-  authSlice.actions;
-
-// Selector to get userId (recommended approach)
+export const {
+  loadUserFromStorage,
+  getUserId,
+  setUserIdFromStorage,
+  clearError,
+  resetLoading,
+} = authSlice.actions;
 export const selectUserId = (state: { auth: AuthState }) => {
   return state.auth.user?.id || null;
 };
-
-// Selector to get the entire user object
 export const selectUser = (state: { auth: AuthState }) => state.auth.user;
-
-// Selector to check if user is authenticated
 export const selectIsAuthenticated = (state: { auth: AuthState }) =>
   state.auth.isAuthenticated;
+
+export const selectRegistrationLoading = (state: { auth: AuthState }) =>
+  state.auth.loading;
+
+export const selectRegistrationError = (state: { auth: AuthState }) =>
+  state.auth.error;
 
 export default authSlice;

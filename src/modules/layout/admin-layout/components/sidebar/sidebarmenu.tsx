@@ -121,6 +121,21 @@ const sidebarSections = [
         ]
     },
     {
+        id: 'applications',
+        label: 'Application',
+        icon: BarChart3,
+        items: [
+            {
+                id: 'applications',
+                label: 'Application',
+                icon: BarChart3,
+                href: '/dashboard/applications',
+                badge: null,
+                description: 'Pending and Approved applications'
+            }
+        ]
+    },
+    {
         id: 'tenants',
         label: 'Tenant Management',
         icon: Users,
