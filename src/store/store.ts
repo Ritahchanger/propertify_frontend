@@ -16,6 +16,9 @@ import unitsSlice from "@/modules/property/features/UnitSlice";
 import applicationsSlice from "@/modules/property/features/ApplicationsSlice";
 
 
+import tenantsSlice from "@/modules/tenants/features/tenant.slice";
+
+
 export const store = configureStore({
 
   reducer: {
@@ -32,7 +35,9 @@ export const store = configureStore({
 
     units: unitsSlice.reducer,
 
-    applications:applicationsSlice.reducer
+    applications:applicationsSlice.reducer,
+
+    tenants:tenantsSlice.reducer
 
   },
 });

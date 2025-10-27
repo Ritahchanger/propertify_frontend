@@ -44,7 +44,7 @@ const AppRoute = () => {
           <Route path="/dashboard/property/:unitId" element={<UnitDetails />} />
 
           <Route
-            path="/dashboard/properties/vacant"
+            path="/properties/vacant"
             element={<VacantUnits />}
           />
           <Route
@@ -68,6 +68,7 @@ const AppRoute = () => {
           <Route path="/dashboard/applications" element={<Applications />} />
         </Route>
       </Routes>
+
       <Toaster position="top-right" richColors />
     </div>
   );

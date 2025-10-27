@@ -46,6 +46,14 @@ import {
 } from "@/lib/components/ui/tabs";
 import { Separator } from "@/lib/components/ui/separator";
 import { ScrollArea } from "@/lib/components/ui/scroll-area";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/lib/components/ui/table";
 
 const Applications = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -139,7 +147,7 @@ const Applications = () => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
-      month: "long",
+      month: "short",
       day: "numeric",
     });
   };
@@ -200,12 +208,12 @@ const Applications = () => {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
             {[
               {
-                label: "Total Applications",
+                label: "Total",
                 value: applicationStats.total,
                 color: "blue",
               },
               {
-                label: "Pending Review",
+                label: "Pending",
                 value: applicationStats.pending,
                 color: "yellow",
               },
@@ -293,116 +301,139 @@ const Applications = () => {
           </CardContent>
         </Card>
 
-        {/* Applications List */}
-        <div className="space-y-4">
-          {applications.map((application) => (
-            <Card key={application.applicationId} className="overflow-hidden">
-              <CardContent className="p-6">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-4 mb-3">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {application.applicant.firstName}{" "}
-                        {application.applicant.lastName}
-                      </h3>
-                      {getStatusBadge(application.applicationStatus)}
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+        {/* Applications Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Applications List</CardTitle>
+            <CardDescription>
+              Review and manage all tenant applications
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Applicant</TableHead>
+                  <TableHead>Property</TableHead>
+                  <TableHead>Unit</TableHead>
+                  <TableHead>Rent</TableHead>
+                  <TableHead>Move-in Date</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Applied On</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {applications.map((application) => (
+                  <TableRow key={application.applicationId}>
+                    <TableCell>
                       <div>
-                        <span className="font-medium text-gray-700">
-                          Property:
-                        </span>
-                        <div className="text-gray-900">
+                        <div className="font-medium">
+                          {application.applicant.firstName}{" "}
+                          {application.applicant.lastName}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {application.applicant.email}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {application.applicant.phone}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">
                           {application.unit.estate.name}
                         </div>
-                        <div className="text-gray-600">
-                          Unit {application.unit.unitNumber}
+                        <div className="text-sm text-gray-500">
+                          {application.unit.estate.location}
                         </div>
                       </div>
-
-                      <div>
-                        <span className="font-medium text-gray-700">
-                          Rent Details:
-                        </span>
-                        <div className="text-gray-900">
-                          KSh{" "}
-                          {parseFloat(
-                            application.unit.monthlyRent
-                          ).toLocaleString()}
-                          /month
-                        </div>
-                        <div className="text-gray-600">
-                          {application.rentDurationMonths} months
-                        </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">
+                        {application.unit.unitNumber}
                       </div>
-
-                      <div>
-                        <span className="font-medium text-gray-700">
-                          Move-in Date:
-                        </span>
-                        <div className="text-gray-900">
-                          {formatDate(application.preferredMoveInDate)}
-                        </div>
-                        <div className="text-gray-600">
-                          Applied on {formatDate(application.appliedAt)}
-                        </div>
+                      <div className="text-sm text-gray-500">
+                        {application.unit.bedrooms} BD /{" "}
+                        {application.unit.bathrooms} BA
                       </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 lg:mt-0 flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        handleViewDetails(application.applicationId)
-                      }
-                    >
-                      View Details
-                    </Button>
-
-                    {application.applicationStatus === "pending" && (
-                      <div className="flex gap-2">
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">
+                        KSh{" "}
+                        {parseFloat(
+                          application.unit.monthlyRent
+                        ).toLocaleString()}
+                      </div>
+                      <div className="text-sm text-gray-500">per month</div>
+                    </TableCell>
+                    <TableCell>
+                      {formatDate(application.preferredMoveInDate)}
+                    </TableCell>
+                    <TableCell>
+                      {application.rentDurationMonths} months
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(application.applicationStatus)}
+                    </TableCell>
+                    <TableCell>{formatDate(application.appliedAt)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
                         <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() =>
-                            handleApprove(application.applicationId)
+                            handleViewDetails(application.applicationId)
                           }
-                          className="bg-green-600 hover:bg-green-700 text-white"
                         >
-                          Approve
+                          View
                         </Button>
-                        <Button
-                          onClick={() =>
-                            handleReject(application.applicationId)
-                          }
-                          variant="destructive"
-                        >
-                          Reject
-                        </Button>
+                        {application.applicationStatus === "pending" && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() =>
+                                handleApprove(application.applicationId)
+                              }
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() =>
+                                handleReject(application.applicationId)
+                              }
+                              variant="destructive"
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+
+            {/* Empty State */}
+            {applications.length === 0 && !loading && (
+              <div className="text-center py-12">
+                <div className="text-gray-500 text-lg font-medium">
+                  No applications found
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {applications.length === 0 && !loading && (
-          <Card>
-            <CardContent className="text-center py-12">
-              <div className="text-gray-500 text-lg font-medium">
-                No applications found
+                <div className="text-gray-400 mt-2">
+                  {selectedStatus !== "all"
+                    ? `No ${selectedStatus} applications at the moment`
+                    : "No applications have been submitted yet"}
+                </div>
               </div>
-              <div className="text-gray-400 mt-2">
-                {selectedStatus !== "all"
-                  ? `No ${selectedStatus} applications at the moment`
-                  : "No applications have been submitted yet"}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (
@@ -436,7 +467,7 @@ const Applications = () => {
 
         {/* Application Detail Modal */}
         <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
-          <DialogContent className="max-w-[900px] w-full  max-h-[90vh]">
+          <DialogContent className="max-w-[900px] w-full max-h-[90vh]">
             {selectedApplication && (
               <>
                 <DialogHeader>
