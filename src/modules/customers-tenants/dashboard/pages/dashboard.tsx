@@ -27,6 +27,10 @@ import type { RootState, AppDispatch } from "@/store/store";
 
 import MakePayment from "../components/MakePayment";
 
+import ShowProfileDropDown from "../components/ShowProfileDropDown";
+
+import PaymentHistoryTab from "../components/PaymentHistoryTab";
+
 const TenantsDashboard = () => {
   const dispatch: AppDispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
@@ -151,60 +155,14 @@ const TenantsDashboard = () => {
 
                 {/* Dropdown Menu */}
                 {showProfileDropdown && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                    <div className="p-4 border-b border-gray-200">
-                      <div className="flex items-center space-x-3">
-                        <div className="relative">
-                          <img
-                            src={profileImage}
-                            alt="Profile"
-                            className="h-12 w-12 rounded-full object-cover border-2 border-gray-300"
-                          />
-                          <label
-                            htmlFor="profileImage"
-                            className="absolute bottom-0 right-0 bg-blue-500 rounded-full p-1 cursor-pointer"
-                          >
-                            <Camera className="h-3 w-3 text-white" />
-                            <input
-                              id="profileImage"
-                              type="file"
-                              accept="image/*"
-                              onChange={handleProfileImageChange}
-                              className="hidden"
-                            />
-                          </label>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {`${user?.firstName} ${user?.lastName}`}
-                          </p>
-                          <p className="text-sm text-gray-500 truncate">
-                            {user?.email}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="py-1">
-                      <button
-                        onClick={() => {
-                          setIsEditingProfile(true);
-                          setShowProfileDropdown(false);
-                        }}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit Profile
-                      </button>
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                      >
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Logout
-                      </button>
-                    </div>
-                  </div>
+                  <ShowProfileDropDown
+                    profileImage={profileImage}
+                    user={user}
+                    handleProfileImageChange={handleProfileImageChange}
+                    setIsEditingProfile={setIsEditingProfile}
+                    setShowProfileDropdown={setShowProfileDropdown}
+                    handleLogout={handleLogout}
+                  />
                 )}
               </div>
             </div>
@@ -452,70 +410,9 @@ const TenantsDashboard = () => {
 
             {/* Payment History Tab */}
             {activeTab === "payment-history" && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                  Payment History
-                </h3>
-                <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
-                  <table className="min-w-full divide-y divide-gray-300">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Invoice ID
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Amount
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Method
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Reference
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {tenantData.payments.map((payment) => (
-                        <tr key={payment.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {payment.id}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {payment.date}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            KSh {payment.amount}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {payment.method}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                                payment.status
-                              )}`}
-                            >
-                              {getStatusIcon(payment.status)}
-                              <span className="ml-1 capitalize">
-                                {payment.status}
-                              </span>
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {payment.reference}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <PaymentHistoryTab
+                tenantData={tenantData}
+              />
             )}
 
             {/* Documents Tab */}
