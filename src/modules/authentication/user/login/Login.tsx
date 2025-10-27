@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Building2, Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
-import { useNavigate, Link } from "react-router-dom"; // Added Link import
+import { useNavigate, Link } from "react-router-dom";
 import Welcome from "./Welcome";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store/store";
@@ -10,7 +10,7 @@ import { toast } from "sonner";
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
-  const { isAuthenticated, loading, error } = useSelector(
+  const { isAuthenticated, loading, error, user } = useSelector(
     (state: RootState) => state.auth
   );
 
@@ -22,10 +22,10 @@ const Login: React.FC = () => {
 
   // Redirect to dashboard if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/dashboard");
+    if (isAuthenticated && user) {
+      handleRoleBasedRedirect(user.role);
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   // Handle Redux error changes
   useEffect(() => {
@@ -33,6 +33,30 @@ const Login: React.FC = () => {
       toast.error(error);
     }
   }, [error]);
+
+  const handleRoleBasedRedirect = (role: string) => {
+    switch (role) {
+      case "owner":
+        navigate("/dashboard");
+        toast.success("Login successful! Welcome to Owner Dashboard.");
+        break;
+      case "manager":
+        navigate("/manager-dashboard");
+        toast.success("Login successful! Welcome to Manager Dashboard.");
+        break;
+      case "tenant":
+        navigate("/tenant-dashboard");
+        toast.success("Login successful! Welcome to Tenant Portal.");
+        break;
+      case "accountant":
+        navigate("/accountant-dashboard");
+        toast.success("Login successful! Welcome to Accountant Dashboard.");
+        break;
+      default:
+        toast.error("Unknown user role. Please contact support.");
+        break;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -50,8 +74,11 @@ const Login: React.FC = () => {
     }
 
     try {
-      await dispatch(loginUser({ email, password })).unwrap();
-      toast.success("Login successful!");
+      // Dispatch login and wait for the result
+      const result = await dispatch(loginUser({ email, password })).unwrap();
+
+      // The redirection will be handled by the useEffect above
+      // since isAuthenticated and user will be updated in Redux state
     } catch (err: any) {
       const errorMessage = err?.message || "Login failed. Please try again.";
       toast.error(errorMessage);

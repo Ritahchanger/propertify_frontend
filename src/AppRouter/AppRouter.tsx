@@ -28,6 +28,8 @@ import Signup from "@/modules/authentication/user/signup/Signup";
 
 import Applications from "@/modules/applications/pages/Applications";
 
+import TenantsDashboard from "@/modules/customers-tenants/dashboard/pages/dashboard";
+
 const AppRoute = () => {
   return (
     <div>
@@ -66,6 +68,9 @@ const AppRoute = () => {
           />
 
           <Route path="/dashboard/applications" element={<Applications />} />
+
+          <Route path="/tenant-dashboard" element={<TenantsDashboard />} />
+
         </Route>
       </Routes>
 
