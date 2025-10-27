@@ -53,6 +53,7 @@ import type { PaginationInfo, Estate, Unit } from "@/shared";
 import { useState } from "react";
 
 import { useNavigate } from "react-router-dom";
+
 import AddUnitsModal from "./AddUnitsModal";
 
 interface PropertiesTableProps {

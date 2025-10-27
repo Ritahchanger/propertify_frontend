@@ -63,6 +63,7 @@ import type { AppDispatch } from "@/store/store";
 
 import { selectUserId } from "@/modules/authentication/user/auth-slice/auth.slice";
 
+import { fetchUserEstates } from "@/modules/property/features/EstatesSlice";
 // Types
 
 interface Estate {

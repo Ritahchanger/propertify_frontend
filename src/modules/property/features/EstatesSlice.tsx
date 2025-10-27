@@ -4,74 +4,10 @@ import {
   type PayloadAction,
 } from "@reduxjs/toolkit";
 import api from "@/axios/axios";
-
 import type { RootState } from "@/store/store";
-
-// Types
-interface Owner {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  role: string;
-}
-
-interface Unit {
-  id: string;
-  unitNumber: string;
-  status: string;
-  monthlyRent: string;
-  bedrooms: number;
-  bathrooms: number;
-}
-
-interface Estate {
-  id: string;
-  ownerId: string;
-  name: string;
-  location: string;
-  description: string;
-  totalUnits: number;
-  status: "active" | "maintenance" | "inactive";
-  created_at: string;
-  updated_at: string;
-  owner: Owner;
-  units: Unit[];
-}
-
-interface EstatesResponse {
-  success: boolean;
-  estates: Estate[];
-  totalCount: number;
-  totalPages: number;
-  currentPage: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
-}
-
-interface EstatesState {
-  estates: Estate[];
-  loading: boolean;
-  error: string | null;
-  totalCount: number;
-  totalPages: number;
-  currentPage: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
-}
-
-// Initial state
-const initialState: EstatesState = {
-  estates: [],
-  loading: false,
-  error: null,
-  totalCount: 0,
-  totalPages: 0,
-  currentPage: 1,
-  hasNext: false,
-  hasPrevious: false,
-};
+import type { EstatesResponse, EstateDropdownItem } from "../types/EstateSlice";
+import { initialState } from "../types/EstateSlice";
+import type { Estate } from "../types/EstateSlice";
 
 // Async thunk for fetching user estates
 export const fetchUserEstates = createAsyncThunk<
@@ -85,9 +21,7 @@ export const fetchUserEstates = createAsyncThunk<
       const response = await api.get(`estates/owner/${userId}`, {
         params: { page, limit },
       });
-
       console.log("Fetched estates:", response.data);
-
       return response.data;
     } catch (error: any) {
       return rejectWithValue(
@@ -97,10 +31,34 @@ export const fetchUserEstates = createAsyncThunk<
   }
 );
 
+// Async thunk for fetching estate names for dropdown
+export const fetchEstateNamesForDropdown = createAsyncThunk<
+  EstateDropdownItem[], // Array of { id: string; name: string }
+  string, // ownerId
+  { rejectValue: string }
+>(
+  "estates/fetchEstateNamesForDropdown",
+  async (ownerId, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/estates/names/${ownerId}`);
+      return response.data; // Should return array of { id, name }
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch estate names"
+      );
+    }
+  }
+);
+
 // Estate slice
 export const estatesSlice = createSlice({
   name: "estates",
-  initialState,
+  initialState: {
+    ...initialState,
+    estateNames: [] as EstateDropdownItem[], // Add estateNames for dropdown
+    estateNamesLoading: false,
+    estateNamesError: null as string | null,
+  },
   reducers: {
     clearEstates: (state) => {
       state.estates = [];
@@ -110,6 +68,10 @@ export const estatesSlice = createSlice({
       state.hasNext = false;
       state.hasPrevious = false;
       state.error = null;
+    },
+    clearEstateNames: (state) => {
+      state.estateNames = [];
+      state.estateNamesError = null;
     },
     updateEstateStatus: (
       state,
@@ -126,15 +88,32 @@ export const estatesSlice = createSlice({
     addEstate: (state, action: PayloadAction<Estate>) => {
       state.estates.unshift(action.payload);
       state.totalCount += 1;
+
+      // Also add to estateNames if not already present
+      const exists = state.estateNames.find(
+        (estate) => estate.id === action.payload.id
+      );
+      if (!exists) {
+        state.estateNames.push({
+          id: action.payload.id,
+          name: action.payload.name,
+        });
+      }
     },
     removeEstate: (state, action: PayloadAction<string>) => {
       state.estates = state.estates.filter(
         (estate) => estate.id !== action.payload
       );
       state.totalCount = Math.max(0, state.totalCount - 1);
+
+      // Also remove from estateNames
+      state.estateNames = state.estateNames.filter(
+        (estate) => estate.id !== action.payload
+      );
     },
     clearError: (state) => {
       state.error = null;
+      state.estateNamesError = null;
     },
   },
   extraReducers: (builder) => {
@@ -153,6 +132,14 @@ export const estatesSlice = createSlice({
         state.hasNext = action.payload.hasNext;
         state.hasPrevious = action.payload.hasPrevious;
         state.error = null;
+
+        // Update estateNames from the full estates data
+        if (action.payload.estates && action.payload.estates.length > 0) {
+          state.estateNames = action.payload.estates.map((estate) => ({
+            id: estate.id,
+            name: estate.name,
+          }));
+        }
       })
       .addCase(fetchUserEstates.rejected, (state, action) => {
         state.loading = false;
@@ -163,15 +150,30 @@ export const estatesSlice = createSlice({
         state.currentPage = 1;
         state.hasNext = false;
         state.hasPrevious = false;
+      })
+      // Fetch estate names for dropdown
+      .addCase(fetchEstateNamesForDropdown.pending, (state) => {
+        state.estateNamesLoading = true;
+        state.estateNamesError = null;
+      })
+      .addCase(fetchEstateNamesForDropdown.fulfilled, (state, action) => {
+        state.estateNamesLoading = false;
+        state.estateNames = action.payload;
+        state.estateNamesError = null;
+      })
+      .addCase(fetchEstateNamesForDropdown.rejected, (state, action) => {
+        state.estateNamesLoading = false;
+        state.estateNamesError =
+          action.payload || "Failed to fetch estate names";
+        state.estateNames = [];
       });
   },
 });
 
-
-
 // Export actions
 export const {
   clearEstates,
+  clearEstateNames,
   updateEstateStatus,
   addEstate,
   removeEstate,
@@ -179,12 +181,25 @@ export const {
 } = estatesSlice.actions;
 
 // Selectors
-
-
-
 export const selectEstates = (state: RootState) => state.estates.estates;
 export const selectEstatesLoading = (state: RootState) => state.estates.loading;
 export const selectEstatesError = (state: RootState) => state.estates.error;
+
+// Estate names selectors for dropdown
+export const selectEstateNames = (state: RootState) =>
+  state.estates.estateNames;
+export const selectEstateNamesLoading = (state: RootState) =>
+  state.estates.estateNamesLoading;
+export const selectEstateNamesError = (state: RootState) =>
+  state.estates.estateNamesError;
+
+// Formatted estate names for dropdown components
+export const selectEstateNamesForDropdown = (state: RootState) =>
+  state.estates.estateNames.map((estate) => ({
+    value: estate.id,
+    label: estate.name,
+  }));
+
 export const selectEstatesPagination = (state: RootState) => ({
   totalCount: state.estates.totalCount,
   totalPages: state.estates.totalPages,
@@ -193,13 +208,9 @@ export const selectEstatesPagination = (state: RootState) => ({
   hasPrevious: state.estates.hasPrevious,
 });
 
-
-
 // Selector for estate by ID
 export const selectEstateById = (id: string) => (state: RootState) =>
   state.estates.estates.find((estate) => estate.id === id);
-
-
 
 // Selector for estates statistics
 export const selectEstatesStats = (state: RootState) => {
@@ -210,9 +221,6 @@ export const selectEstatesStats = (state: RootState) => {
     0
   );
 
-
-
-
   // Calculate occupied units from units array
   const totalOccupied = estates.reduce((sum, estate) => {
     const occupiedUnits = estate.units.filter(
@@ -221,9 +229,6 @@ export const selectEstatesStats = (state: RootState) => {
     return sum + occupiedUnits;
   }, 0);
 
-
-
-
   // Calculate total monthly revenue
   const totalRevenue = estates.reduce((sum, estate) => {
     const estateRevenue = estate.units
@@ -231,11 +236,6 @@ export const selectEstatesStats = (state: RootState) => {
       .reduce((unitSum, unit) => unitSum + parseFloat(unit.monthlyRent), 0);
     return sum + estateRevenue;
   }, 0);
-
-
-
-
-
 
   const totalMaintenanceRequests = estates.reduce((sum, estate) => {
     return sum + (estate.status === "maintenance" ? 1 : 0);
@@ -254,4 +254,4 @@ export const selectEstatesStats = (state: RootState) => {
   };
 };
 
-export default estatesSlice.reducer;
+export default estatesSlice;

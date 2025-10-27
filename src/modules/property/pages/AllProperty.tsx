@@ -1,15 +1,14 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
-  Building2,
-  Users,
-  DollarSign,
   Search,
   Plus,
-  Home,
   AlertTriangle,
   CheckCircle,
   Clock,
   Wrench,
+  Download,
+  FileText,
+  Sheet,
 } from "lucide-react";
 import { Card, CardContent } from "@/lib/components/ui/card";
 import { Button } from "@/lib/components/ui/button";
@@ -23,6 +22,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/lib/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/lib/components/ui/dropdown-menu";
 
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -37,9 +42,7 @@ import {
 import type { AppDispatch } from "@/store/store";
 import { selectUserId } from "@/modules/authentication/user/auth-slice/auth.slice";
 import PropertiesTable from "../components/PropertiesTable";
-
 import AddPropertyModal from "../components/AddProperty";
-
 import { openAddPropertyModal } from "../features/AddPropertyModalSlice";
 
 const AllProperty: React.FC = () => {
@@ -50,12 +53,10 @@ const AllProperty: React.FC = () => {
   const error = useSelector(selectEstatesError);
   const pagination = useSelector(selectEstatesPagination);
   const stats = useSelector(selectEstatesStats);
-
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-
 
   useEffect(() => {
     if (userId) {
@@ -64,7 +65,6 @@ const AllProperty: React.FC = () => {
       );
     }
   }, [dispatch, userId, currentPage, itemsPerPage]);
-
 
   const filteredEstates = useMemo(() => {
     return estates.filter((estate) => {
@@ -81,6 +81,187 @@ const AllProperty: React.FC = () => {
       return matchesSearch && matchesStatus;
     });
   }, [estates, searchQuery, statusFilter]);
+
+  // Export functions
+  const exportToCSV = () => {
+    const headers = [
+      "Property Name",
+      "Location",
+      "Owner",
+      "Status",
+      "Total Units",
+      "Occupied Units",
+      "Occupancy Rate",
+      "Monthly Revenue",
+      "Last Updated",
+    ];
+
+    const csvData = filteredEstates.map((estate) => {
+      const occupiedUnits = estate.units.filter(
+        (unit: any) => unit.status === "occupied"
+      ).length;
+      const occupancyRate = getOccupancyRate(estate);
+      const monthlyRevenue = getTotalRevenue(estate);
+
+      return [
+        `"${estate.name}"`,
+        `"${estate.location}"`,
+        `"${estate.owner.firstName} ${estate.owner.lastName}"`,
+        estate.status,
+        estate.totalUnits,
+        occupiedUnits,
+        `${occupancyRate}%`,
+        `$${monthlyRevenue.toLocaleString()}`,
+        new Date(estate.updatedAt).toLocaleDateString(),
+      ];
+    });
+
+    const csvContent = [
+      headers.join(","),
+      ...csvData.map((row) => row.join(",")),
+    ].join("\n");
+
+    downloadFile(csvContent, "properties.csv", "text/csv");
+  };
+
+  const exportToJSON = () => {
+    const jsonData = filteredEstates.map((estate) => {
+      const occupiedUnits = estate.units.filter(
+        (unit: any) => unit.status === "occupied"
+      ).length;
+      const occupancyRate = getOccupancyRate(estate);
+      const monthlyRevenue = getTotalRevenue(estate);
+
+      return {
+        id: estate.id,
+        name: estate.name,
+        location: estate.location,
+        owner: `${estate.owner.firstName} ${estate.owner.lastName}`,
+        status: estate.status,
+        totalUnits: estate.totalUnits,
+        occupiedUnits: occupiedUnits,
+        occupancyRate: `${occupancyRate}%`,
+        monthlyRevenue: `$${monthlyRevenue.toLocaleString()}`,
+        lastUpdated: new Date(estate.updatedAt).toLocaleDateString(),
+        units: estate.units.map((unit: any) => ({
+          unitNumber: unit.unitNumber,
+          status: unit.status,
+          monthlyRent: unit.monthlyRent,
+          tenant: unit.tenant,
+        })),
+      };
+    });
+
+    const jsonString = JSON.stringify(jsonData, null, 2);
+    downloadFile(jsonString, "properties.json", "application/json");
+  };
+
+  const exportToPDF = async () => {
+    // For PDF generation, you would typically use a library like jspdf
+    // This is a simplified version - you might want to use a proper PDF library
+    const pdfContent = `
+      PROPERTIES REPORT
+      Generated on: ${new Date().toLocaleDateString()}
+      Total Properties: ${filteredEstates.length}
+
+      ${filteredEstates
+        .map(
+          (estate) => `
+        Property: ${estate.name}
+        Location: ${estate.location}
+        Owner: ${estate.owner.firstName} ${estate.owner.lastName}
+        Status: ${estate.status}
+        Units: ${estate.totalUnits} total, ${
+            estate.units.filter((u: any) => u.status === "occupied").length
+          } occupied
+        Monthly Revenue: $${getTotalRevenue(estate).toLocaleString()}
+        ---
+      `
+        )
+        .join("\n")}
+    `;
+
+    downloadFile(pdfContent, "properties-report.txt", "text/plain");
+
+    // For actual PDF generation, consider using:
+    // import jsPDF from 'jspdf';
+    // const doc = new jsPDF();
+    // doc.text(pdfContent, 10, 10);
+    // doc.save('properties.pdf');
+  };
+
+  const exportToExcel = () => {
+    // For Excel export, you can create a CSV that Excel can open
+    // For more advanced Excel features, consider using a library like xlsx
+    const excelData = [
+      ["Properties Export", "", "", "", "", "", "", "", ""],
+      [
+        "Generated on:",
+        new Date().toLocaleDateString(),
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ],
+      ["", "", "", "", "", "", "", "", ""],
+      [
+        "Property Name",
+        "Location",
+        "Owner",
+        "Status",
+        "Total Units",
+        "Occupied Units",
+        "Occupancy Rate",
+        "Monthly Revenue",
+        "Last Updated",
+      ],
+    ];
+
+    const dataRows = filteredEstates.map((estate) => {
+      const occupiedUnits = estate.units.filter(
+        (unit: any) => unit.status === "occupied"
+      ).length;
+      const occupancyRate = getOccupancyRate(estate);
+      const monthlyRevenue = getTotalRevenue(estate);
+
+      return [
+        estate.name,
+        estate.location,
+        `${estate.owner.firstName} ${estate.owner.lastName}`,
+        estate.status,
+        estate.totalUnits,
+        occupiedUnits,
+        `${occupancyRate}%`,
+        `$${monthlyRevenue.toLocaleString()}`,
+        new Date(estate.updatedAt).toLocaleDateString(),
+      ];
+    });
+
+    const excelContent = [...excelData, ...dataRows]
+      .map((row) => row.join(","))
+      .join("\n");
+
+    downloadFile(excelContent, "properties.xls", "application/vnd.ms-excel");
+  };
+
+  const downloadFile = (
+    content: string,
+    fileName: string,
+    mimeType: string
+  ) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -150,7 +331,6 @@ const AllProperty: React.FC = () => {
       )
     ) {
       dispatch(removeEstate(estateId));
-      
     }
   };
 
@@ -169,8 +349,6 @@ const AllProperty: React.FC = () => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
-
-
 
   if (loading && estates.length === 0) {
     return (
@@ -232,18 +410,46 @@ const AllProperty: React.FC = () => {
               Manage and monitor your property portfolio
             </p>
           </div>
-          <Button
-            className="bg-blue-600 hover:bg-blue-700"
-            onClick={handleAddProperty}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add New Property
-          </Button>
+          <div className="grid grid-cols-2 gap-[1rem]">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export Data
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={exportToCSV}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Export as CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportToExcel}>
+                  <Sheet className="w-4 h-4 mr-2" />
+                  Export as Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportToJSON}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Export as JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportToPDF}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Export as PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={handleAddProperty}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add New Property
+            </Button>
+          </div>
         </div>
 
-     
-      
-   
         <Card className="p-0 border-none shadow-none">
           <CardContent className="p-0 border-none">
             <div className="flex flex-col lg:flex-row gap-4">
@@ -276,8 +482,6 @@ const AllProperty: React.FC = () => {
           </CardContent>
         </Card>
 
-
- 
         <PropertiesTable
           estates={estates}
           filteredEstates={filteredEstates}
@@ -297,7 +501,6 @@ const AllProperty: React.FC = () => {
           getTotalRevenue={getTotalRevenue}
         />
 
-    
         <AddPropertyModal />
       </div>
     </Layout>
