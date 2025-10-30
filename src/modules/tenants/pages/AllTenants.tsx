@@ -183,9 +183,9 @@ const AllTenants: React.FC = () => {
   // Filter tenants based on search and status
   const filteredTenants = tenants.filter((tenant) => {
     const matchesSearch =
-      tenant.personalInfo.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tenant.personalInfo.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tenant.unitDetails.unitNumber.toLowerCase().includes(searchTerm.toLowerCase());
+      tenant?.personalInfo?.fullName?.toLowerCase()?.includes(searchTerm?.toLowerCase()) ||
+      tenant?.personalInfo?.email?.toLowerCase()?.includes(searchTerm?.toLowerCase()) ||
+      tenant?.unitDetails?.unitNumber?.toLowerCase()?.includes(searchTerm?.toLowerCase());
 
     const matchesStatus =
       statusFilter === "all" || tenant.personalInfo.userStatus === statusFilter;

@@ -1,25 +1,5 @@
 import { CheckCircle, Clock, AlertCircle } from "lucide-react";
 
-// Define interfaces for the data structures
-interface Payment {
-  id: string;
-  date: string;
-  amount: number;
-  method: string;
-  status: "completed" | "pending" | "failed";
-  reference: string;
-}
-
-interface TenantData {
-  payments: Payment[];
-}
-
-// Define the component props
-interface PaymentHistoryTabProps {
-  tenantData: TenantData;
-  getStatusIcon?: (status: string) => any;
-  getStatusColor?: (status: string) => string;
-}
 
 const PaymentHistoryTab = ({
   tenantData,
@@ -31,7 +11,7 @@ const PaymentHistoryTab = ({
       <h3 className="text-lg font-semibold text-gray-900 mb-6">
         Payment History
       </h3>
-      <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+      <div className="overflow-hidden shadow ring-1 ring-neutral-300 ring-opacity-5 rounded-sm border-neutral-300">
         <table className="min-w-full divide-y divide-gray-300">
           <thead className="bg-gray-50">
             <tr>

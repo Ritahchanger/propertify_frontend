@@ -39,23 +39,21 @@ const AppRoute = () => {
         <Route path="/register" element={<Signup />} />
 
         <Route element={<ProtectedRoute />}>
+
           <Route path="/dashboard" element={<Dashboard />} />
 
           <Route path="/dashboard/property" element={<AllProperty />} />
 
           <Route path="/dashboard/property/:unitId" element={<UnitDetails />} />
 
-          <Route
-            path="/properties/vacant"
-            element={<VacantUnits />}
-          />
+          <Route path="/properties/vacant" element={<VacantUnits />} />
           <Route
             path="/dashboard/properties/tenants"
             element={<AllTenants />}
           />
           <Route path="/financial/income" element={<FinancialOverview />} />
 
-          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/dashboard/analytics" element={<Analytics />} />
 
           <Route
             path="/dashboard/user/management"
@@ -70,7 +68,7 @@ const AppRoute = () => {
           <Route path="/dashboard/applications" element={<Applications />} />
 
           <Route path="/tenant-dashboard" element={<TenantsDashboard />} />
-
+          
         </Route>
       </Routes>
 

@@ -7,18 +7,16 @@ import {
   Bell,
   Calendar,
   DollarSign,
-  CheckCircle,
-  Clock,
-  AlertCircle,
   Building,
-  LogOut,
   Camera,
-  Edit,
   Save,
   X,
 } from "lucide-react";
+
 import { logoutUser } from "@/modules/authentication/user/auth-slice/auth.slice";
+
 import tenantData from "../data/type";
+
 import { useSelector, useDispatch } from "react-redux";
 
 import ProfileForm from "../components/ProfileForm";
@@ -30,6 +28,8 @@ import MakePayment from "../components/MakePayment";
 import ShowProfileDropDown from "../components/ShowProfileDropDown";
 
 import PaymentHistoryTab from "../components/PaymentHistoryTab";
+
+import DocumentsTab from "../components/DocumentsTab";
 
 const TenantsDashboard = () => {
   const dispatch: AppDispatch = useDispatch();
@@ -91,32 +91,6 @@ const TenantsDashboard = () => {
     setIsEditingProfile(false);
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "completed":
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case "pending":
-        return <Clock className="h-5 w-5 text-yellow-500" />;
-      case "failed":
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
-      default:
-        return <Clock className="h-5 w-5 text-gray-500" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-100 text-green-800";
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "failed":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
       {" "}
@@ -135,7 +109,7 @@ const TenantsDashboard = () => {
               <button className="p-2 text-gray-600 hover:text-gray-900 relative">
                 <Bell className="h-6 w-6" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
+              </button>e
 
               {/* Profile Dropdown */}
               <div className="relative">
@@ -410,65 +384,11 @@ const TenantsDashboard = () => {
 
             {/* Payment History Tab */}
             {activeTab === "payment-history" && (
-              <PaymentHistoryTab
-                tenantData={tenantData}
-              />
+              <PaymentHistoryTab tenantData={tenantData} />
             )}
 
             {/* Documents Tab */}
-            {activeTab === "documents" && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                  Documents
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[
-                    {
-                      name: "Lease Agreement",
-                      type: "PDF",
-                      date: "2024-01-15",
-                    },
-                    { name: "House Rules", type: "PDF", date: "2024-01-15" },
-                    {
-                      name: "Payment Receipt - Jan 2025",
-                      type: "PDF",
-                      date: "2025-01-01",
-                    },
-                    {
-                      name: "Payment Receipt - Dec 2024",
-                      type: "PDF",
-                      date: "2024-12-01",
-                    },
-                    {
-                      name: "Maintenance Guidelines",
-                      type: "PDF",
-                      date: "2024-01-15",
-                    },
-                  ].map((doc, index) => (
-                    <div
-                      key={index}
-                      className="bg-gray-50 rounded-lg p-4 border"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <FileText className="h-8 w-8 text-blue-600" />
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          {doc.type}
-                        </span>
-                      </div>
-                      <h4 className="font-medium text-gray-900 mb-1">
-                        {doc.name}
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        Uploaded: {doc.date}
-                      </p>
-                      <button className="w-full mt-3 bg-white border border-neutral-300 text-gray-700 py-2 px-3 rounded text-sm hover:bg-gray-50 transition-colors duration-200">
-                        Download
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {activeTab === "documents" && <DocumentsTab />}
           </div>
         </div>
       </div>

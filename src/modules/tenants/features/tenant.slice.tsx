@@ -14,6 +14,7 @@ export const getAllTenants = createAsyncThunk(
     });
 
     return response.data.data;
+    console.log(response.data);
   }
 );
 
