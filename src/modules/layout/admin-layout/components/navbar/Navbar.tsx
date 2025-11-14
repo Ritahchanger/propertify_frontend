@@ -5,7 +5,6 @@ import {
   DollarSign,
   Wrench,
   Bell,
-  Settings,
   Search,
   Menu,
   X,
@@ -38,6 +37,8 @@ import { logoutUser } from "@/modules/authentication/user/auth-slice/auth.slice"
 import { useNavigate } from "react-router-dom";
 
 import UserDropDown from "./UserDropDown";
+
+
 
 // Types
 interface User {

@@ -28,7 +28,7 @@ const ProtectedRoute: React.FC<{ children?: React.ReactNode }> = ({ children }) 
     }
 
     if (!isAuthenticated) {
-        return <Navigate to="/" state={{ from: location }} replace />;
+        return <Navigate to="/auth/user/login" state={{ from: location }} replace />;
     }
 
     return children ? <>{children}</> : <Outlet />;

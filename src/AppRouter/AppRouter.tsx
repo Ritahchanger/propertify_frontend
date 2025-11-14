@@ -30,11 +30,16 @@ import Applications from "@/modules/applications/pages/Applications";
 
 import TenantsDashboard from "@/modules/customers-tenants/dashboard/pages/dashboard";
 
+import Home from "@/modules/home/home/Home";
+
 const AppRoute = () => {
   return (
     <div>
       <Routes>
-        <Route path="/" element={<Login />} />
+
+      <Route path="/" element={<Home />} />
+
+        <Route path="/auth/user/login" element={<Login />} />
 
         <Route path="/register" element={<Signup />} />
 
